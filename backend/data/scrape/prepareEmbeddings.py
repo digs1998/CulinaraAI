@@ -7,9 +7,10 @@ from typing import List, Optional
 from dataclasses import dataclass
 import numpy as np
 
-# ============================================================
-# Data Model
-# ============================================================
+
+# ===============================
+# Data model
+# ===============================
 @dataclass
 class RecipeDocument:
     recipe_id: int
@@ -22,56 +23,41 @@ class RecipeDocument:
     metadata: dict
 
 
-# ============================================================
-# Embedding Preparation
-# ============================================================
+# ===============================
+# Embedding preparation
+# ===============================
 class RecipeEmbeddingPrep:
-    def __init__(self, db_path: str = "recipes.db"):
+    def __init__(self, db_path):
         self.db_path = db_path
         self.documents: List[RecipeDocument] = []
 
-    # ----------------------------
+    # -----------------------------
     # Cleaning helpers
-    # ----------------------------
+    # -----------------------------
     def clean_text(self, text: Optional[str]) -> str:
         if not text:
             return ""
-        text = html.unescape(text)
+        text = html.unescape(str(text))
         text = " ".join(text.split())
         return text.strip()
 
-    def clean_ingredient(self, ingredient: str) -> str:
-        return self.clean_text(ingredient).strip("., ")
+    def clean_ingredient(self, ingredient) -> str:
+        if isinstance(ingredient, dict):
+            ingredient = " ".join(str(v) for v in ingredient.values())
+        return self.clean_text(str(ingredient))
 
-    def clean_instruction(self, instruction: str) -> str:
-        text = self.clean_text(instruction)
+    def clean_instruction(self, instruction) -> str:
+        if isinstance(instruction, dict):
+            instruction = " ".join(str(v) for v in instruction.values())
+        text = self.clean_text(str(instruction))
         if text and not text.endswith("."):
             text += "."
         return text
 
-    # ----------------------------
-    # Normalize lists
-    # ----------------------------
-    def normalize_list(self, value):
-        if value is None:
-            return []
-        if isinstance(value, list):
-            return value
-        if isinstance(value, dict):
-            return [value]
-        if isinstance(value, str):
-            return [value]
-        return []
-
-    # ----------------------------
-    # DB extraction
-    # ----------------------------
-    def extract_recipe_from_row(
-        self,
-        recipe_id: int,
-        row: tuple,
-    ) -> RecipeDocument:
-
+    # -----------------------------
+    # Extract recipe from DB row
+    # -----------------------------
+    def extract_recipe_from_row(self, recipe_id: int, row: tuple) -> RecipeDocument:
         (
             url,
             title,
@@ -83,44 +69,29 @@ class RecipeEmbeddingPrep:
             rating,
         ) = row
 
-        # Parse JSON safely
+        # parse JSON safely
         try:
-            ingredients_raw = json.loads(ingredients_json) if ingredients_json else []
-        except Exception:
-            ingredients_raw = ingredients_json or []
+            ingredients = json.loads(ingredients_json or "[]")
+        except json.JSONDecodeError:
+            ingredients = []
 
         try:
-            instructions_raw = json.loads(instructions_json) if instructions_json else []
-        except Exception:
-            instructions_raw = instructions_json or []
+            instructions = json.loads(instructions_json or "[]")
+        except json.JSONDecodeError:
+            instructions = []
 
-        # Normalize to lists
-        ingredients = self.normalize_list(ingredients_raw)
-        instructions = self.normalize_list(instructions_raw)
-
-        # Clean ingredients and instructions
-        cleaned_ingredients = [
-            self.clean_ingredient(i.get("text") if isinstance(i, dict) else str(i))
-            for i in ingredients
-            if i
-        ]
-
-        cleaned_instructions = [
-            self.clean_instruction(i.get("text") if isinstance(i, dict) else str(i))
-            for i in instructions
-            if i
-        ]
+        # clean
+        cleaned_ingredients = [self.clean_ingredient(i) for i in ingredients if i]
+        cleaned_instructions = [self.clean_instruction(i) for i in instructions if i]
 
         ingredients_text = "\n".join(f"- {i}" for i in cleaned_ingredients)
         instructions_text = "\n".join(f"{idx+1}. {step}" for idx, step in enumerate(cleaned_instructions))
 
-        # Compose full text
         full_text_parts = [
             f"Recipe: {title}",
             f"Ingredients:\n{ingredients_text}",
             f"Instructions:\n{instructions_text}"
         ]
-
         if description:
             full_text_parts.insert(1, f"Description: {self.clean_text(description)}")
         if category:
@@ -130,7 +101,6 @@ class RecipeEmbeddingPrep:
 
         full_text = "\n\n".join(full_text_parts)
 
-        # Metadata
         metadata = {
             "title": title,
             "category": category,
@@ -140,6 +110,7 @@ class RecipeEmbeddingPrep:
             "step_count": len(cleaned_instructions),
             "url": url,
         }
+        # Remove None metadata for ChromaDB
         metadata = {k: v for k, v in metadata.items() if v is not None}
 
         return RecipeDocument(
@@ -153,13 +124,12 @@ class RecipeEmbeddingPrep:
             metadata=metadata,
         )
 
-    # ----------------------------
+    # -----------------------------
     # Load all recipes
-    # ----------------------------
-    def load_recipes_from_db(self):
+    # -----------------------------
+    def load_recipes_from_db(self) -> List[RecipeDocument]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-
         cursor.execute("""
             SELECT
                 id,
@@ -173,7 +143,6 @@ class RecipeEmbeddingPrep:
                 rating
             FROM recipes
         """)
-
         rows = cursor.fetchall()
         conn.close()
 
@@ -190,9 +159,9 @@ class RecipeEmbeddingPrep:
         print(f"✓ Prepared {len(self.documents)} documents")
         return self.documents
 
-    # ----------------------------
-    # Export
-    # ----------------------------
+    # -----------------------------
+    # Export for embedding
+    # -----------------------------
     def export_for_embedding(self, output_path: str):
         with open(output_path, "w") as f:
             for doc in self.documents:
@@ -205,13 +174,12 @@ class RecipeEmbeddingPrep:
                 )
         print(f"✓ Exported {len(self.documents)} docs → {output_path}")
 
-    # ----------------------------
+    # -----------------------------
     # Stats
-    # ----------------------------
+    # -----------------------------
     def get_statistics(self):
         if not self.documents:
             return
-
         avg_text_len = np.mean([len(d.full_text) for d in self.documents])
         avg_ingredients = np.mean([d.metadata["ingredient_count"] for d in self.documents])
         avg_steps = np.mean([d.metadata["step_count"] for d in self.documents])
@@ -223,22 +191,22 @@ class RecipeEmbeddingPrep:
         print(f"   Avg steps: {avg_steps:.1f}")
 
 
-# ----------------------------
+# -----------------------------
 # CLI
-# ----------------------------
-def main():
-    print("🚀 Recipe Embedding Prep\n")
-    prep = RecipeEmbeddingPrep("recipes.db")
-    docs = prep.load_recipes_from_db()
+# # -----------------------------
+# def main():
+#     print("🚀 Recipe Embedding Prep\n")
+#     prep = RecipeEmbeddingPrep("recipes.db")
+#     docs = prep.load_recipes_from_db()
 
-    if not docs:
-        print("❌ No recipes found")
-        return
+#     if not docs:
+#         print("❌ No recipes found")
+#         return
 
-    prep.get_statistics()
-    prep.export_for_embedding("recipes_for_embedding.jsonl")
-    print("\n✅ Ready for Chroma ingestion")
+#     prep.get_statistics()
+#     prep.export_for_embedding("recipes_for_embedding.jsonl")
+#     print("\n✅ Ready for Chroma ingestion")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

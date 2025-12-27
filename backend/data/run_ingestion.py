@@ -76,10 +76,12 @@ def generate_and_ingest_embeddings(jsonl_path):
 
     embedder = RecipeEmbedder(
         provider="gemini",             # or "openai", "sentence-transformers"
-        model=None,                    # Use default model
+        model="text-embedding-004",     
         persist_dir="./chroma_db",     # Chroma persistence directory
         collection_name="recipes",     # Chroma collection name
         batch_size=64,
+        embedding_dim=768,
+        chunk_size=300
     )
 
     embedder.ingest_jsonl(jsonl_path)

@@ -1,16 +1,14 @@
 # generateEmbeddings.py
+
 import os
 import json
 import time
-from typing import List, Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 from chromadb import Client
 from chromadb.config import Settings
 from tqdm import tqdm
-
-# Generative AI clients
 import google.generativeai as genai
-from openai import OpenAI
 
 load_dotenv()
 
@@ -18,93 +16,120 @@ load_dotenv()
 class RecipeEmbedder:
     def __init__(
         self,
-        persist_dir: str = "chroma_db/",
-        collection_name: str = "recipes",
-        provider: str = "openai",
-        model: Optional[str] = None,
-        batch_size: int = 64,
-        embedding_dim: int = 1536,  # adjustable embedding dimension
+        persist_dir,
+        collection_name,
+        provider,
+        model,
+        embedding_dim,
+        batch_size,
+        chunk_size
     ):
         self.persist_dir = persist_dir
         self.collection_name = collection_name
-        self.batch_size = batch_size
-        self.provider = provider.lower()
+        self.provider = provider
         self.model = model
         self.embedding_dim = embedding_dim
+        self.batch_size = batch_size
+        self.chunk_size = chunk_size
 
-        # Initialize Chroma client
-        self.chroma = Client(
-            Settings(persist_directory=self.persist_dir, anonymized_telemetry=False)
-        )
+        # Chroma client
+        self.chroma = Client(Settings(
+            persist_directory=self.persist_dir,
+            anonymized_telemetry=False
+        ))
         self.collection = self.chroma.get_or_create_collection(self.collection_name)
 
-        # Initialize embedding client
-        if self.provider == "openai":
-            self.embed_client = OpenAI()
-        elif self.provider == "gemini":
+        # Gemini configuration
+        if self.provider == "gemini":
             genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        else:
-            raise ValueError(f"Unsupported embedding provider: {self.provider}")
 
-    def _generate_embedding(self, text: str, max_retries: int = 5) -> List[float]:
-        """Generate embedding for a single text with retries."""
+    # -----------------------------
+    # Chunk text into smaller pieces
+    # -----------------------------
+    def chunk_text(self, text: str) -> List[str]:
+        words = text.split()
+        return [" ".join(words[i:i+self.chunk_size]) for i in range(0, len(words), self.chunk_size)]
+
+    # -----------------------------
+    # Generate embedding with retries
+    # -----------------------------
+    def _generate_embedding(self, text: str, max_retries: int = 5):
+        if self.provider != "gemini":
+            raise NotImplementedError(f"Provider {self.provider} not supported")
+
+        model = self.model
+
         for attempt in range(max_retries):
             try:
-                if self.provider == "openai":
-                    # Example OpenAI embedding call
-                    resp = self.embed_client.embeddings.create(
-                        model=self.model or "text-embedding-3-large",
-                        input=text
-                    )
-                    return resp.data[0].embedding
+                result = genai.embed_content(
+                    model=model,
+                    content=text,
+                    task_type="retrieval_query"
+                )
+                embedding = result.get("embedding")
+                if not embedding:
+                    raise ValueError("Empty embedding returned")
 
-                elif self.provider == "gemini":
-                    resp = genai.embed_content(
-                        model=self.model or "models/gemini-embedding-001",
-                        content=text,
-                        task_type="retrieval_query"
-                    )
-                    return resp["embedding"]
+                # Adjust dimension
+                if len(embedding) != self.embedding_dim:
+                    print(f"⚠️ Warning: Embedding dimension mismatch "
+                          f"(expected {self.embedding_dim}, got {len(embedding)})")
+                    if len(embedding) < self.embedding_dim:
+                        embedding += [0.0] * (self.embedding_dim - len(embedding))
+                    else:
+                        embedding = embedding[:self.embedding_dim]
 
+                return embedding
             except Exception as e:
-                wait = 2 ** attempt
-                print(f"⚠️ Error generating embedding, retrying in {wait}s... ({attempt+1}/{max_retries})")
-                time.sleep(wait)
+                wait_time = 2 ** attempt
+                print(f"⚠ Error generating embedding, retrying in {wait_time}s... ({attempt+1}/{max_retries})")
+                time.sleep(wait_time)
 
         raise RuntimeError("Failed to generate embedding after multiple retries.")
 
+    # -----------------------------
+    # Ingest JSONL with chunking
+    # -----------------------------
     def ingest_jsonl(self, jsonl_path: str):
         print(f"📥 Reading recipes from {jsonl_path}")
         with open(jsonl_path, "r") as f:
             docs = [json.loads(line) for line in f]
 
         print(f"📦 Generating embeddings for {len(docs)} recipes...")
+
         for i in tqdm(range(0, len(docs), self.batch_size)):
-            batch = docs[i:i + self.batch_size]
+            batch = docs[i:i+self.batch_size]
 
-            ids = [doc["id"] for doc in batch]
-            texts = [doc["text"] for doc in batch]
-            metadatas = [doc["metadata"] for doc in batch]
-            embeddings = [self._generate_embedding(text) for text in texts]
+            chunked_texts = []
+            chunked_ids = []
+            chunked_metadatas = []
 
+            # Chunk each recipe
+            for doc in batch:
+                chunks = self.chunk_text(doc["text"])
+                for idx, chunk in enumerate(chunks):
+                    chunked_texts.append(chunk)
+                    chunked_ids.append(f"{doc['id']}_chunk{idx+1}")
+                    metadata = doc.get("metadata", {})
+                    chunked_metadatas.append({k: v for k, v in metadata.items() if v is not None})
+
+            # Generate embeddings for chunks
+            embeddings = [self._generate_embedding(text) for text in chunked_texts]
+
+            # Add to Chroma
             self.collection.add(
-                ids=ids,
-                documents=texts,
-                metadatas=metadatas,
-                embeddings=embeddings,
+                ids=chunked_ids,
+                documents=chunked_texts,
+                metadatas=chunked_metadatas,
+                embeddings=embeddings
             )
 
-        # REMOVE this line — it causes the AttributeError
-        # self.chroma.persist()
+        print(f"✅ Ingested {len(docs)} recipes (chunked) into ChromaDB at '{self.persist_dir}'")
 
-        print(f"✅ Ingested {len(docs)} recipes into ChromaDB at '{self.persist_dir}'")
-        print(f"Collection: '{self.collection_name}' ready to query!")
-
+    # -----------------------------
+    # Query example
+    # -----------------------------
     def query(self, query_text: str, k: int = 5):
-        """Query the ChromaDB collection using an embedding."""
-        if not query_text.strip():
-            return {"documents": [], "metadatas": []}
-
         embedding = self._generate_embedding(query_text)
         results = self.collection.query(
             query_embeddings=[embedding],
