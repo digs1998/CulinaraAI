@@ -1,0 +1,31 @@
+# Core Framework
+fastapi
+uvicorn[standard]
+
+# Data Validation
+pydantic
+pydantic[email]
+
+# AI/ML
+google-generativeai
+langchain
+langchain-google-genai
+langchain-pinecone
+pinecone-client
+
+# Web Scraping
+beautifulsoup4
+requests
+lxml
+requests-html
+nest-asyncio
+duckduckgo-search
+
+# Utilities
+python-dotenv
+slowapi
+tenacity
+crawl4ai
+tqdm
+sentence-transformers
+openai
