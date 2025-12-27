@@ -1,6 +1,6 @@
 # Core Framework
 fastapi
-uvicorn[standard]
+uvicorn
 
 # Data Validation
 pydantic
@@ -10,7 +10,8 @@ pydantic[email]
 google-generativeai
 langchain
 langchain-google-genai
-langchain-pinecone
+chromadb
+langchain-core
 pinecone-client
 
 # Web Scraping

@@ -5,43 +5,57 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from contextlib import asynccontextmanager
-from rag_engine import RecipeRAGEngine
+from rag_engine import RecipeRAGEngine, get_mcp_tools
 import uvicorn
 import sys
 from pathlib import Path
 import os
+from chromadb import Client
+from chromadb.config import Settings
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-# Initialize RAG engine on startup
-rag_engine = None
+load_dotenv()
+
+# ----------------- RAG Engine Initialization -----------------
+
+rag_engine: Optional[RecipeRAGEngine] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     global rag_engine
-    print("🚀 Initializing Feastron RAG Engine...")
-    # Get the path relative to this file's location
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
-    embeddings_path = os.path.join(backend_dir, "data", "recipe_embeddings.npz")
-    rag_engine = RecipeRAGEngine(embeddings_path=embeddings_path)
-    rag_engine.setup_mcp_orchestrator()  # Setup MCP orchestrator
+    print("🚀 Initializing CulinaraAI RAG Engine with ChromaDB...")
+
+    # Setup ChromaDB client
+    chroma_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
+    chroma_client = Client(Settings(
+        chroma_db_impl="duckdb+parquet",
+        persist_directory=chroma_dir
+    ))
+
+    # Get or create recipe collection
+    collection = chroma_client.get_or_create_collection("recipes")
+
+    # Initialize RAG engine with Chroma collection
+    rag_engine = RecipeRAGEngine(chroma_collection=collection)
+    rag_engine.setup_mcp_orchestrator()
+
     print("✅ RAG Engine + MCP Orchestrator ready!")
     yield
-    # Shutdown (if needed, cleanup code goes here)
-    # For now, no cleanup needed
 
-app = FastAPI(title="Feastron API", version="1.0.0", lifespan=lifespan)
+# ----------------- FastAPI Setup -----------------
 
-# Enable CORS for frontend
+app = FastAPI(title="CulinaraAI API", version="1.0.0", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Vite/React default ports
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# ============= Request/Response Models =============
+# ----------------- Request/Response Models -----------------
 
 class ChatMessage(BaseModel):
     message: str
@@ -71,7 +85,7 @@ class ChatResponse(BaseModel):
     sources: List[Dict]
 
 
-# ============= API Endpoints =============
+# ----------------- API Endpoints -----------------
 
 @app.get("/")
 async def root():
@@ -98,23 +112,22 @@ async def get_stats():
     except Exception as e:
         import traceback
         error_detail = str(e)
-        print(f"Error in /api/chat: {error_detail}")
+        print(f"Error in /api/stats: {error_detail}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=error_detail)
 
 
 @app.post("/api/search")
 async def search_recipes(request: RecipeSearchRequest):
-    """Search recipes using semantic similarity"""
+    """Search recipes using ChromaDB embeddings"""
     try:
-        results = rag_engine.search_recipes(
+        results = rag_engine.search_chroma(
             query=request.query,
             top_k=request.top_k,
             filters=request.filters,
             min_score=request.min_score
         )
-        
-        # Format results
+
         recipes = []
         for result in results:
             meta = result['metadata']
@@ -127,55 +140,42 @@ async def search_recipes(request: RecipeSearchRequest):
                 "url": meta.get('url'),
                 "score": result['score']
             })
-        
+
         return {"results": recipes}
-    
+
     except Exception as e:
         import traceback
         error_detail = str(e)
-        print(f"Error in /api/chat: {error_detail}")
+        print(f"Error in /api/search: {error_detail}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=error_detail)
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatMessage):
-    """
-    Main chat endpoint - Uses RAG with LLM fallback
-    
-    Takes a user message and returns:
-    - Recipe recommendations if found in database
-    - LLM-generated guidance if no relevant recipes found
-    """
+    """Main chat endpoint - Uses RAG with LLM fallback"""
     try:
-        # Use RAG engine with similarity threshold
-        # Increased threshold to 0.65 (65%) to avoid irrelevant matches
         answer = rag_engine.answer_question(
             question=request.message,
             top_k=3,
-            similarity_threshold=0.65  # Require at least 65% match for better relevance
+            similarity_threshold=0.65
         )
-        
-        # Check if response was generated by LLM (no relevant recipes found)
+
         if answer.get('generated', False):
-            # LLM generated response
             return {
                 "message": f"🤔 {answer['response']}\n\n{answer.get('message', '')}",
-                "recipes": [],  # No exact matches
-                "sources": answer.get('sources', [])  # Might have similar recipes
+                "recipes": [],
+                "sources": answer.get('sources', [])
             }
-        
-        # We have relevant recipes from database
+
         results = answer['sources']
-        
         if not results:
             return {
-                "message": "I couldn't find any recipes matching your request. Try asking for something more specific or different!",
+                "message": "I couldn't find any recipes matching your request.",
                 "recipes": [],
                 "sources": []
             }
-        
-        # Format recipe recommendations
+
         recipes = []
         for result in results:
             meta = result['metadata']
@@ -188,28 +188,23 @@ async def chat(request: ChatMessage):
                 "url": meta.get('url'),
                 "score": result['score']
             })
-        
-        # Generate AI response message for database results
+
         top_recipe = results[0]['metadata']
-        response_message = f"I found some great options for you! The top match is **{top_recipe['title']}** "
-        
+        response_message = f"I found some great options! Top match: **{top_recipe['title']}** "
         if top_recipe.get('category'):
             response_message += f"from the {top_recipe['category']} category "
-        
         if top_recipe.get('total_time'):
             response_message += f"(takes {top_recipe['total_time']}) "
-        
         if top_recipe.get('rating'):
             response_message += f"with a {top_recipe['rating']}/5 rating"
-        
-        response_message += f". Check out the recipes below!"
-        
+        response_message += ". Check out the recipes below!"
+
         return {
             "message": response_message,
             "recipes": recipes,
             "sources": results
         }
-    
+
     except Exception as e:
         import traceback
         error_detail = str(e)
@@ -231,7 +226,7 @@ async def get_recipe(recipe_id: str):
     except Exception as e:
         import traceback
         error_detail = str(e)
-        print(f"Error in /api/chat: {error_detail}")
+        print(f"Error in /api/recipe/{recipe_id}: {error_detail}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=error_detail)
 
@@ -245,16 +240,16 @@ async def get_similar_recipes(recipe_id: str, top_k: int = 5):
     except Exception as e:
         import traceback
         error_detail = str(e)
-        print(f"Error in /api/chat: {error_detail}")
+        print(f"Error in /api/similar/{recipe_id}: {error_detail}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=error_detail)
 
 
+# ----------------- Run Server -----------------
+
 if __name__ == "__main__":
-    # Add workspace root to Python path so backend.main can be imported
     workspace_root = Path(__file__).parent.parent
     if str(workspace_root) not in sys.path:
         sys.path.insert(0, str(workspace_root))
-    
-    # Use import string format for reload to work properly
+
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

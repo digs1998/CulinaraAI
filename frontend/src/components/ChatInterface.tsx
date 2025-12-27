@@ -8,7 +8,7 @@ export const ChatInterface: React.FC = () => {
     {
       role: "assistant",
       content:
-        "👋 Hey! I'm Feastron, your AI culinary coach with attitude. What are you craving today?",
+        "👋 Hey! I'm CulinaraAI your AI culinary coach with attitude. What are you craving today?",
     },
   ]);
 

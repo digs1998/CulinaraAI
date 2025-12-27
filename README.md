@@ -1,4 +1,4 @@
-# 🍳 Culinara
+# 🍳 Culinara AI
 
 Gordon Ramsay-inspired cooking chatbot with RAG (Retrieval-Augmented Generation)
 

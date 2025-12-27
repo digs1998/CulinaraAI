@@ -45,3 +45,5 @@ htmlcov/
 *.csv
 *.json.bak
 backend/services/__pycache__
+chromadb/
+recipes.db
