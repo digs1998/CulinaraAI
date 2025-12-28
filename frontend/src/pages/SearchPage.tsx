@@ -3,12 +3,17 @@ import { RecipeResults } from "../components/recipesResults";
 export default function SearchPage() {
   const recipes = [
     {
-      id: "1",
       title: "Quick Greek Spinach and Chicken Orzo",
-      category: "One Dish Meal",
-      cook_time_minutes: 30,
-      rating: 5,
-      match_percentage: 68
+      ingredients: ["chicken", "spinach", "orzo"],
+      instructions: ["Cook chicken", "Add spinach", "Mix with orzo"],
+      facts: {
+        prep_time: "10 min",
+        cook_time: "20 min",
+        total_time: "30 min",
+        servings: "4",
+      },
+      source: "example.com",
+      score: 95.0
     }
   ];
 
