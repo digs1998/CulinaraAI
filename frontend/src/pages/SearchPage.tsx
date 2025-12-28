@@ -1,4 +1,4 @@
-import RecipeResults from "./components/RecipeResults";
+import RecipeResults from "../components/recipesResults";
 
 export default function SearchPage() {
   const recipes = [
