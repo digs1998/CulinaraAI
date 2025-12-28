@@ -534,7 +534,7 @@ MIT License - feel free to use this project for learning and commercial purposes
 Questions? Suggestions? Reach out!
 
 - GitHub Issues: [Create an issue](https://github.com/yourusername/CulinaraAI/issues)
-- Email: your.email@example.com
+- Email: digvijayyadav48@gmail.com
 
 ---
 
