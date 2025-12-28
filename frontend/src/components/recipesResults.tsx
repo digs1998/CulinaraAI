@@ -1,62 +1,197 @@
 import React from "react";
 
-type Recipe = {
-  id: string;
+interface Recipe {
   title: string;
-  category?: string;
-  total_time?: string;
-  rating?: number;
+  ingredients: string[];
+  instructions: string[];
+  facts: {
+    prep_time?: string;
+    cook_time?: string;
+    total_time?: string;
+    servings?: string;
+    calories?: string;
+  };
+  source: string;
   score: number;
-  url?: string;
-};
+}
 
-type Props = {
+interface RecipeResultsProps {
   recipes: Recipe[];
-};
+}
 
-export const RecipeResults: React.FC<Props> = ({ recipes }) => {
+export const RecipeResults: React.FC<RecipeResultsProps> = ({ recipes }) => {
+  const topRecipes = recipes.slice(0, 3);
+
   return (
-    <div style={{ marginTop: "16px" }}>
-      {recipes.map((recipe, index) => (
-        <div
-          key={recipe.id}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+        width: "100%",
+      }}
+    >
+      {topRecipes.map((recipe, index) => (
+        <a
+          key={index}
+          href={recipe.source}
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
-            backgroundColor: index === 0 ? "#e5e7eb" : "#f3f4f6",
-            borderRadius: "12px",
-            padding: "16px",
-            marginBottom: "12px",
-            border: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "space-between",
+            textDecoration: "none",
+            color: "inherit",
           }}
         >
-          <div>
-            <h3 style={{ fontWeight: 600, margin: "0 0 6px 0" }}>
-              {recipe.title}
-            </h3>
-
-            <div style={{ display: "flex", gap: "12px", fontSize: "14px", color: "#6b7280" }}>
-              {recipe.category && <span>🏷 {recipe.category}</span>}
-              {recipe.total_time && <span>⏱ {recipe.total_time}</span>}
-              {recipe.rating && <span>⭐ {recipe.rating}/5</span>}
-            </div>
-          </div>
-
-          <span
+          <div
             style={{
-              alignSelf: "center",
-              fontSize: "12px",
-              backgroundColor: "#fed7aa",
-              color: "#c2410c",
-              padding: "6px 10px",
-              borderRadius: "999px",
-              whiteSpace: "nowrap",
+              borderRadius: "20px",
+              overflow: "hidden",
+              background: `
+                linear-gradient(
+                  180deg,
+                  rgba(0,0,0,0.35),
+                  rgba(0,0,0,0.05)
+                ),
+                url("/images/italian-dish.jpg")
+              `,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              boxShadow: "0 10px 28px rgba(0,0,0,0.15)",
+              transition: "all 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-4px)";
+              e.currentTarget.style.boxShadow =
+                "0 16px 36px rgba(34,197,94,0.35)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow =
+                "0 10px 28px rgba(0,0,0,0.15)";
             }}
           >
-            {(recipe.score * 100).toFixed(0)}% match
-          </span>
-        </div>
+            {/* Image Header */}
+            <div
+              style={{
+                padding: "20px",
+                color: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                }}
+              >
+                {recipe.title}
+              </h3>
+
+              <span
+                style={{
+                  backgroundColor: "rgba(255,237,213,0.95)",
+                  color: "#9a3412",
+                  padding: "8px 14px",
+                  borderRadius: "999px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {recipe.score.toFixed(1)}% match
+              </span>
+            </div>
+
+            {/* Content Body */}
+            <div
+              style={{
+                background: "rgba(255,255,255,0.97)",
+                padding: "18px 20px 20px",
+              }}
+            >
+              {/* Recipe Facts */}
+              {recipe.facts && Object.keys(recipe.facts).length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: "12px",
+                    marginBottom: "14px",
+                    padding: "14px",
+                    backgroundColor: "#f0fdf4",
+                    borderRadius: "12px",
+                    border: "1px solid #bbf7d0",
+                  }}
+                >
+                  {recipe.facts.prep_time && (
+                    <Fact icon="⏱️" label="Prep" value={recipe.facts.prep_time} />
+                  )}
+                  {recipe.facts.cook_time && (
+                    <Fact icon="🔥" label="Cook" value={recipe.facts.cook_time} />
+                  )}
+                  {recipe.facts.total_time && (
+                    <Fact icon="⏰" label="Total" value={recipe.facts.total_time} />
+                  )}
+                  {recipe.facts.servings && (
+                    <Fact icon="🍽️" label="Serves" value={recipe.facts.servings} />
+                  )}
+                  {recipe.facts.calories && (
+                    <Fact icon="⚡" label="Energy" value={recipe.facts.calories} />
+                  )}
+                </div>
+              )}
+
+              {/* CTA */}
+              <div
+                style={{
+                  fontSize: "14px",
+                  color: "#22c55e",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                🔗 View full recipe & ingredients
+              </div>
+            </div>
+          </div>
+        </a>
       ))}
     </div>
   );
 };
+
+/* Small helper component for clarity */
+const Fact = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      fontSize: "13px",
+      color: "#166534",
+    }}
+  >
+    <span style={{ fontSize: "16px" }}>{icon}</span>
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <span style={{ fontSize: "11px", opacity: 0.7 }}>{label}</span>
+      <span style={{ fontWeight: 500 }}>{value}</span>
+    </div>
+  </div>
+);

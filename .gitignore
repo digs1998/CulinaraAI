@@ -47,3 +47,5 @@ htmlcov/
 backend/services/__pycache__
 recipes.db
 chroma_db/
+.claude
+frontend/node_modules

@@ -178,6 +178,39 @@ class RecipeRAGEngine:
 
     # -------------------- Search --------------------
 
+    def _parse_metadata(self, meta: dict) -> dict:
+        """
+        Parse JSON strings back to Python objects for ingredients/instructions
+        """
+        import json
+        
+        parsed = meta.copy()
+        
+        # Parse JSON string fields back to lists/dicts
+        for key in ['ingredients', 'instructions']:
+            if key in parsed and isinstance(parsed[key], str):
+                try:
+                    parsed[key] = json.loads(parsed[key])
+                except:
+                    # If parsing fails, treat as single-item list
+                    parsed[key] = [parsed[key]]
+        
+        # Parse facts if stored as JSON string
+        if 'facts' in parsed and isinstance(parsed['facts'], str):
+            try:
+                parsed['facts'] = json.loads(parsed['facts'])
+            except:
+                parsed['facts'] = {}
+        
+        # Build facts from individual fields if not already a dict
+        if 'facts' not in parsed or not parsed['facts']:
+            parsed['facts'] = {}
+            for key in ['prep_time', 'cook_time', 'total_time', 'servings', 'calories']:
+                if key in parsed and parsed[key]:
+                    parsed['facts'][key] = parsed[key]
+        
+        return parsed
+
     def search_chroma(
         self,
         query: str,
@@ -232,9 +265,10 @@ class RecipeRAGEngine:
                 all_terms, ingredient_terms, methods, text_blob
             )
 
-            # Calculate final score
-            base_score = 1 - dist  # Convert distance to similarity
-            final_score = max(0.0, min(1.0, base_score + boost))
+            # Calculate final score (distance is 0-2, similarity is 1-distance)
+            # Keep score in 0-1 range, don't multiply by 100 here
+            base_score = max(0.0, 1.0 - dist)  # Convert distance to similarity (0-1)
+            final_score = max(0.0, min(1.0, base_score + boost))  # Add boost, clamp to 0-1
 
             # Log matching details for debugging
             title = meta.get("title", "Unknown")[:40]
@@ -260,8 +294,8 @@ class RecipeRAGEngine:
             final.append({
                 "id": meta.get("id", "unknown"),
                 "score": final_score,
-                "metadata": meta,
-                "keyword_match": has_keyword_match,  # ADD THIS FIELD
+                "metadata": self._parse_metadata(meta),  # Parse JSON strings back to lists
+                "keyword_match": has_keyword_match,
                 "match_details": match_details,
             })
 
@@ -287,7 +321,7 @@ class RecipeRAGEngine:
             if not result["metadatas"] or not result["metadatas"][0]:
                 continue
             
-            meta = result["metadatas"][0]
+            meta = self._parse_metadata(result["metadatas"][0])  # Parse JSON strings
             
             context += f"\n{'='*50}\n"
             context += f"Recipe: {meta.get('title', 'Unknown')}\n"
@@ -332,7 +366,7 @@ class RecipeRAGEngine:
         result = self.collection.get(ids=[recipe_id])
         if not result["metadatas"] or not result["metadatas"][0]:
             return None
-        return result["metadatas"][0]
+        return self._parse_metadata(result["metadatas"][0])  # Parse JSON strings
 
     # -------------------- Similar Recipes --------------------
 

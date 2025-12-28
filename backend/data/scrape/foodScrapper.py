@@ -112,7 +112,12 @@ class RecipeScraper:
             if parsed.netloc not in self.allowed_domains:
                 continue
 
-            if re.search(r"/recipe[s]?/", parsed.path, re.I):
+            # More aggressive link matching
+            path_lower = parsed.path.lower()
+            if any(keyword in path_lower for keyword in [
+                "/recipe", "/dish", "/meal", "/food", 
+                "/cook", "/kitchen", "/cuisine"
+            ]):
                 links.add(full_url)
 
         return list(links)
@@ -239,20 +244,39 @@ class RecipeScraper:
             all_links = set()
 
             print("📋 Collecting recipe links...")
+            
+            # Collect links from start pages
             for start_url in start_urls:
                 html = await self.scrape_page(start_url, crawler)
                 if html:
                     links = self.extract_recipe_links(html, start_url)
                     all_links.update(links)
+                    print(f"   Found {len(links)} links from {start_url}")
                 await asyncio.sleep(1)
 
-            print(f"✓ Found {len(all_links)} candidate recipes")
+            print(f"\n✓ Collected {len(all_links)} total candidate URLs")
+            print(f"📥 Starting to scrape (target: {self.max_recipes} recipes)...\n")
 
-            for url in list(all_links)[: self.max_recipes]:
-                await self.scrape_recipe_page(url, crawler)
+            # Scrape recipes until we hit max_recipes
+            scraped_count = 0
+            failed_count = 0
+            
+            for i, url in enumerate(list(all_links), 1):
                 if len(self.recipes) >= self.max_recipes:
                     break
-                await asyncio.sleep(0.5)
+                
+                await self.scrape_recipe_page(url, crawler)
+                
+                if len(self.recipes) > scraped_count:
+                    scraped_count = len(self.recipes)
+                else:
+                    failed_count += 1
+                
+                # Progress update every 10 URLs
+                if i % 10 == 0:
+                    print(f"   Progress: {scraped_count}/{self.max_recipes} recipes scraped, {failed_count} failed")
+                
+                await asyncio.sleep(0.3)  # Reduced delay for faster scraping
 
         return self.recipes
 
@@ -263,40 +287,4 @@ class RecipeScraper:
     def export_to_json(self, filename="recipes.json"):
         with open(filename, "w") as f:
             json.dump(self.recipes, f, indent=2)
-        print(f"✓ Exported {len(self.recipes)} recipes → {filename}")
-
-
-# ---------------------------
-# Entry point
-# ---------------------------
-
-async def main():
-    scraper = RecipeScraper(
-        allowed_domains=[
-            "www.food.com",
-            "www.allrecipes.com",
-            "www.seriouseats.com",
-            "www.bbcgoodfood.com",
-            "www.americastestkitchen.com",
-            "www.blueapron.com",
-        ],
-        max_recipes=500,
-    )
-
-    start_urls = [
-        "https://www.food.com/",
-        "https://www.allrecipes.com/",
-        "https://www.seriouseats.com/",
-        "https://www.bbcgoodfood.com/",
-        "https://www.americastestkitchen.com/",
-        "https://www.blueapron.com/cookbook/",
-    ]
-
-    recipes = await scraper.scrape_recipes(start_urls)
-    scraper.export_to_json("recipes_backup.json")
-
-    print(f"\n🎉 Done. Scraped {len(recipes)} recipes.")
-
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
+        print(f"\n✓ Exported {len(self.recipes)} recipes → {filename}")

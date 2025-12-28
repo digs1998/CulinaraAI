@@ -31,22 +31,44 @@ async def scrape_recipes_pipeline():
             "www.blueapron.com",
         ],
         max_recipes=1000,
-        db_path="recipes.db",  # Save to current directory
+        db_path="recipes.db",
     )
 
+    # More diverse start URLs to find more recipes
     start_urls = [
-        "https://www.food.com/",
-        "https://www.allrecipes.com/",
-        "https://www.seriouseats.com/",
-        "https://www.bbcgoodfood.com/",
-        "https://www.americastestkitchen.com/",
+        # Food.com
+        "https://www.food.com/ideas",
+        "https://www.food.com/recipes",
+        
+        # AllRecipes
+        "https://www.allrecipes.com/recipes/",
+        "https://www.allrecipes.com/recipes/17562/dinner/",
+        "https://www.allrecipes.com/recipes/78/breakfast-and-brunch/",
+        
+        # Serious Eats
+        "https://www.seriouseats.com/recipes",
+        "https://www.seriouseats.com/easy-recipes-5117887",
+        
+        # BBC Good Food
+        "https://www.bbcgoodfood.com/recipes/collection/quick-recipes",
+        "https://www.bbcgoodfood.com/recipes/collection/easy-recipes",
+        "https://www.bbcgoodfood.com/recipes",
+        
+        # America's Test Kitchen
+        "https://www.americastestkitchen.com/recipes/browse",
+        "https://www.americastestkitchen.com/recipes",
+        
+        # Blue Apron
         "https://www.blueapron.com/cookbook/",
     ]
 
-    print("🚀 Scraping recipes...")
+    print(f"🚀 Scraping recipes from {len(start_urls)} start URLs...")
+    print(f"🎯 Target: {scraper.max_recipes} recipes\n")
+    
     recipes = await scraper.scrape_recipes(start_urls)
     scraper.export_to_json("recipes_backup.json")
-    print(f"✅ Scraped {len(recipes)} recipes.")
+    
+    print(f"\n✅ Final count: {len(recipes)} recipes scraped")
     return recipes
 
 
@@ -102,6 +124,10 @@ def generate_and_ingest_embeddings(jsonl_path):
 
 
 async def main():
+    import time
+    
+    start_time = time.time()
+    
     print("\n🎯 Starting full ingestion pipeline...\n")
     print(f"📂 Script location: {Path(__file__).resolve()}")
     print(f"📂 Working directory: {Path.cwd()}")
@@ -109,17 +135,32 @@ async def main():
     print()
     
     # 1️⃣ Scrape recipes
+    scrape_start = time.time()
     await scrape_recipes_pipeline()
+    scrape_time = time.time() - scrape_start
+    print(f"\n⏱️  Scraping took: {scrape_time:.2f} seconds ({scrape_time/60:.2f} minutes)")
     
     # 2️⃣ Prepare recipes for embeddings
+    prep_start = time.time()
     jsonl_path = prepare_recipes_for_embedding()
     if not jsonl_path:
         return
+    prep_time = time.time() - prep_start
+    print(f"\n⏱️  Preparation took: {prep_time:.2f} seconds")
 
     # 3️⃣ Generate embeddings and ingest to Chroma
+    embed_start = time.time()
     generate_and_ingest_embeddings(jsonl_path)
+    embed_time = time.time() - embed_start
+    print(f"\n⏱️  Embedding generation took: {embed_time:.2f} seconds ({embed_time/60:.2f} minutes)")
+    
+    total_time = time.time() - start_time
 
     print("\n🎉 Full ingestion pipeline completed successfully!")
+    print(f"\n⏱️  TOTAL TIME: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
+    print(f"   - Scraping: {scrape_time/60:.2f} min")
+    print(f"   - Preparation: {prep_time:.2f} sec")
+    print(f"   - Embeddings: {embed_time/60:.2f} min")
     print("\n📋 Next steps:")
     print("   1. Run: python debug_chroma_db.py")
     print("   2. Verify recipes are loaded")

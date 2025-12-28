@@ -13,16 +13,16 @@ from pydantic import BaseModel
 import uvicorn
 
 # --------------------------------------------------
-# Ensure project root is on PYTHONPATH
+# Ensure current directory is on PYTHONPATH for Docker compatibility
 # --------------------------------------------------
-ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 # --------------------------------------------------
 # Local imports
 # --------------------------------------------------
-from backend.rag_engine import RecipeRAGEngine
+from rag_engine import RecipeRAGEngine
 from services.mcp_orchestrator import MCPOrchestrator
 from services.recipe_scraper_pipeline import scrape_recipe_via_mcp
 
@@ -128,6 +128,7 @@ class RecipeResult(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     recipes: List[RecipeResult]
+    facts: Optional[List[str]] = []
 
 # --------------------------------------------------
 # MCP Pipeline
@@ -144,6 +145,7 @@ def mcp_process_query(query: str) -> Dict:
     orchestrator_result = mcp_orchestrator.process_query(query)
 
     recipes_list = []
+    facts_list = orchestrator_result.get("facts", [])
 
     # Step 2: If RAG DB had results, include them
     if orchestrator_result.get("has_database_results"):
@@ -168,18 +170,18 @@ def mcp_process_query(query: str) -> Dict:
         web_results = orchestrator_result.get("web_results", {})
         search_result = web_results.get("search_result", {})
         urls = [r.get("url") for r in search_result.get("results", []) if r.get("url")]
-        
+
         logger.info(f"🔍 Attempting to scrape {len(urls)} URLs from web search...")
         for idx, url in enumerate(urls[:5], 1):  # Limit to top 5 URLs
             try:
                 logger.info(f"  [{idx}/{min(5, len(urls))}] Scraping: {url[:60]}...")
                 recipe = scrape_recipe_via_mcp(url)
-                
+
                 # Filter out failed scrapes
                 if recipe.get("title") == "Could not fetch recipe":
                     logger.warning(f"  ⚠️ Skipping failed scrape: {url[:60]}")
                     continue
-                
+
                 # Web results get 95% match (they're from search, so relevant)
                 recipes_list.append({
                     "title": recipe.get("title", "Recipe"),
@@ -192,12 +194,21 @@ def mcp_process_query(query: str) -> Dict:
                 logger.info(f"  ✅ Successfully scraped: {recipe.get('title', 'Unknown')[:50]}")
             except Exception as e:
                 logger.warning(f"  ⚠️ Failed to scrape {url[:60]}: {str(e)[:100]}")
-        
+
         logger.info(f"✅ Total successfully scraped recipes: {len(recipes_list)}")
+
+    logger.info(f"💡 Generated {len(facts_list)} culinary facts")
+    if facts_list:
+        logger.info("📋 Facts being returned:")
+        for i, fact in enumerate(facts_list, 1):
+            logger.info(f"   {i}. {fact[:100]}")
+    else:
+        logger.warning("⚠️ No facts generated for this query!")
 
     return {
         "response": orchestrator_result.get("message", "I couldn't find relevant recipes."),
-        "recipes": recipes_list
+        "recipes": recipes_list,
+        "facts": facts_list
     }
 
 # --------------------------------------------------
@@ -240,10 +251,15 @@ def chat(req: ChatRequest):
                 "score": round(float(score), 1)  # Round to 1 decimal place
             })
         
-        return {
+        response_data = {
             "response": result.get("response", ""),
-            "recipes": validated_recipes
+            "recipes": validated_recipes,
+            "facts": result.get("facts", [])
         }
+
+        logger.info(f"📤 Sending response with {len(response_data['facts'])} facts")
+
+        return response_data
     except Exception as e:
         logger.exception("❌ MCP pipeline failed")
         raise HTTPException(status_code=500, detail=str(e))

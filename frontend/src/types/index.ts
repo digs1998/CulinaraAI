@@ -9,15 +9,17 @@ export interface Recipe {
 }
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
-  recipes?: Recipe[];
+  recipes?: any[];
+  facts?: string[];
 }
 
+
 export interface ChatResponse {
-  message: string;
+  response: string;
   recipes: Recipe[];
-  sources: any[];
+  facts?: string[];
 }
 
 export interface ChatRequest {

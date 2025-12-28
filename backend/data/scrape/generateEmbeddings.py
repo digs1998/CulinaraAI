@@ -103,9 +103,11 @@ class RecipeEmbedder:
     # -----------------------------
     def _flatten_metadata(self, metadata: dict) -> dict:
         """
-        ChromaDB requires flat metadata (no nested dicts/lists).
-        Convert all values to strings or numbers.
+        ChromaDB only accepts: str, int, float, bool, or None
+        Convert lists to JSON strings, which we'll parse back when retrieving
         """
+        import json
+        
         flat = {}
         for key, value in metadata.items():
             if value is None:
@@ -113,11 +115,11 @@ class RecipeEmbedder:
             elif isinstance(value, (str, int, float, bool)):
                 flat[key] = value
             elif isinstance(value, list):
-                # Convert list to comma-separated string
-                flat[key] = ", ".join(str(v) for v in value)
+                # Store lists as JSON strings - we'll parse them back in rag_engine
+                flat[key] = json.dumps(value)
             elif isinstance(value, dict):
-                # Skip nested dicts or flatten them
-                continue
+                # Store dicts as JSON strings
+                flat[key] = json.dumps(value)
             else:
                 flat[key] = str(value)
         

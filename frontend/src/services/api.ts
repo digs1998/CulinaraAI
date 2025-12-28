@@ -10,7 +10,7 @@ const api = axios.create({
   },
 });
 
-export const feastronAPI = {
+export const CulinaraAIAPI = {
   // Health check
   healthCheck: async () => {
     const response = await api.get('/');
@@ -51,4 +51,4 @@ export const feastronAPI = {
   },
 };
 
-export default feastronAPI;
+export default CulinaraAIAPI;
