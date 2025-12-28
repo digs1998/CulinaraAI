@@ -20,6 +20,8 @@ class RecipeDocument:
     full_text: str
     ingredients_text: str
     instructions_text: str
+    ingredients_list: List[str]  # NEW: Keep original list
+    instructions_list: List[str]  # NEW: Keep original list
     metadata: dict
 
 
@@ -101,7 +103,9 @@ class RecipeEmbeddingPrep:
 
         full_text = "\n\n".join(full_text_parts)
 
+        # CRITICAL: Include ingredients and instructions in metadata for RAG search
         metadata = {
+            "id": f"recipe_{recipe_id}",
             "title": title,
             "category": category,
             "cuisine": cuisine,
@@ -109,8 +113,16 @@ class RecipeEmbeddingPrep:
             "ingredient_count": len(cleaned_ingredients),
             "step_count": len(cleaned_instructions),
             "url": url,
+            "ingredients": cleaned_ingredients,  # Full ingredients list
+            "instructions": cleaned_instructions,  # Full instructions list
+            # Placeholder facts (can be populated from JSON-LD if available)
+            "prep_time": None,
+            "cook_time": None,
+            "total_time": None,
+            "servings": None,
+            "calories": None,
         }
-        # Remove None metadata for ChromaDB
+        # Remove None values
         metadata = {k: v for k, v in metadata.items() if v is not None}
 
         return RecipeDocument(
@@ -121,6 +133,8 @@ class RecipeEmbeddingPrep:
             full_text=full_text,
             ingredients_text=ingredients_text,
             instructions_text=instructions_text,
+            ingredients_list=cleaned_ingredients,
+            instructions_list=cleaned_instructions,
             metadata=metadata,
         )
 
@@ -154,9 +168,9 @@ class RecipeEmbeddingPrep:
                 doc = self.extract_recipe_from_row(recipe_id, row[1:])
                 self.documents.append(doc)
             except Exception as e:
-                print(f"⚠ Failed recipe {recipe_id}: {e}")
+                print(f"⚠️ Failed recipe {recipe_id}: {e}")
 
-        print(f"✓ Prepared {len(self.documents)} documents")
+        print(f"✅ Prepared {len(self.documents)} documents")
         return self.documents
 
     # -----------------------------
@@ -167,12 +181,12 @@ class RecipeEmbeddingPrep:
             for doc in self.documents:
                 f.write(
                     json.dumps({
-                        "id": f"recipe_{doc.recipe_id}",
+                        "id": doc.metadata["id"],
                         "text": doc.full_text,
                         "metadata": doc.metadata,
                     }) + "\n"
                 )
-        print(f"✓ Exported {len(self.documents)} docs → {output_path}")
+        print(f"✅ Exported {len(self.documents)} docs → {output_path}")
 
     # -----------------------------
     # Stats
@@ -189,24 +203,3 @@ class RecipeEmbeddingPrep:
         print(f"   Avg text length: {avg_text_len:.0f}")
         print(f"   Avg ingredients: {avg_ingredients:.1f}")
         print(f"   Avg steps: {avg_steps:.1f}")
-
-
-# -----------------------------
-# CLI
-# # -----------------------------
-# def main():
-#     print("🚀 Recipe Embedding Prep\n")
-#     prep = RecipeEmbeddingPrep("recipes.db")
-#     docs = prep.load_recipes_from_db()
-
-#     if not docs:
-#         print("❌ No recipes found")
-#         return
-
-#     prep.get_statistics()
-#     prep.export_for_embedding("recipes_for_embedding.jsonl")
-#     print("\n✅ Ready for Chroma ingestion")
-
-
-# if __name__ == "__main__":
-#     main()

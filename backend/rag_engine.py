@@ -1,14 +1,9 @@
 import os
-import json
-import html
 import numpy as np
 from typing import List, Dict, Optional
+
 import google.generativeai as genai
 from dotenv import load_dotenv
-
-# ChromaDB
-from chromadb import Client
-from chromadb.config import Settings
 
 # MCP tools
 from services.mcp_tools import get_mcp_tools
@@ -16,356 +11,487 @@ from services.mcp_orchestrator import MCPOrchestrator
 
 load_dotenv()
 
+
 class RecipeRAGEngine:
     """
-    Recipe RAG Engine with ChromaDB + MCP Fallback + LLM Generation
+    Recipe RAG Engine
+    Uses:
+      - ChromaDB collection (injected)
+      - Gemini embeddings + generation
+      - MCP orchestration fallback
     """
 
-    def __init__(self, chroma_dir: str = "./chroma_db"):
-        load_dotenv()
-
-        # ---- Gemini
+    def __init__(self, chroma_collection):
+        """
+        chroma_collection: chromadb.api.models.Collection.Collection
+        """
+        # ---------------- Gemini ----------------
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
         self.embedding_model = "models/text-embedding-004"
         self.generation_model = "gemini-2.0-flash-exp"
 
-        # ---- ChromaDB
-        self.client = Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory=chroma_dir))
-        self.collection = self.client.get_collection("recipes")
+        # ---------------- Chroma ----------------
+        self.collection = chroma_collection
 
-        # ---- MCP tools
+        # ---------------- MCP ----------------
         self.mcp_tools = get_mcp_tools()
-        self.mcp_orchestrator = None
+        self.mcp_orchestrator: Optional[MCPOrchestrator] = None
 
     # -------------------- MCP Orchestrator --------------------
+
     def setup_mcp_orchestrator(self):
         if self.mcp_orchestrator is None:
             self.mcp_orchestrator = MCPOrchestrator(self, self.mcp_tools)
 
     # -------------------- Embeddings --------------------
+
     def embed_query(self, query: str) -> np.ndarray:
         result = genai.embed_content(
             model=self.embedding_model,
             content=query,
-            task_type="retrieval_query"
+            task_type="retrieval_query",
         )
-        return np.array(result["embedding"])
+        return np.array(result["embedding"], dtype=np.float32)
 
-    # -------------------- Keyword Extraction --------------------
-    def _extract_key_terms(self, query: str) -> tuple[List[str], List[str]]:
+    # -------------------- Keyword Utilities --------------------
+
+    def _extract_key_terms(self, query: str):
+        """Extract searchable terms from query"""
         common_ingredients = {
-            'chicken', 'beef', 'pork', 'lamb', 'fish', 'salmon', 'tuna', 'shrimp', 'prawn',
-            'paneer', 'tofu', 'tempeh', 'seitan',
-            'cheese', 'mozzarella', 'cheddar', 'feta', 'ricotta',
-            'mushroom', 'eggplant', 'zucchini', 'tomato', 'potato', 'onion', 'garlic',
-            'rice', 'pasta', 'noodle', 'bread'
+            "chicken", "beef", "pork", "lamb", "fish", "salmon", "tuna",
+            "shrimp", "prawn", "paneer", "tofu", "cheese", "mushroom", 
+            "tomato", "potato", "onion", "garlic", "ginger", "rice", 
+            "pasta", "noodle", "bread", "egg", "spinach", "beans",
+            "lentil", "dal", "curry", "tikka", "masala", "biryani",
         }
-        stop_words = {'how', 'to', 'make', 'recipe', 'for', 'a', 'an', 'the', 'with', 'and', 'or', 'of', 'in'}
-        query_lower = query.lower()
-        all_terms = [word.rstrip('?') for word in query_lower.split() if word.rstrip('?') not in stop_words and len(word.rstrip('?')) > 2]
-        ingredient_terms = [term for term in all_terms if term in common_ingredients]
-        return all_terms, ingredient_terms
 
-    # -------------------- Keyword Match Check --------------------
-    def _check_keyword_match(self, all_terms, ingredient_terms, text):
-        text = text.lower()
-        ingredient_conflicts = {
-            "chicken": ["tofu", "paneer", "vegetarian", "vegan"],
-            "paneer": ["chicken", "beef", "pork"],
-            "tofu": ["chicken", "beef", "pork"]
+        cooking_methods = {
+            "grilled", "fried", "baked", "roasted", "steamed", "boiled",
+            "sauteed", "stir-fry", "slow-cook", "instant", "quick",
         }
-        for ing in ingredient_terms:
-            conflicts = ingredient_conflicts.get(ing, [])
-            if any(c in text for c in conflicts):
-                return -0.3, False
-        for ing in ingredient_terms:
-            if ing not in text:
-                return -0.2, False
-        matches = sum(1 for t in all_terms if t in text)
-        boost = min(0.15, matches * 0.03)
-        return boost, True
 
-    # -------------------- Recipe Search --------------------
-    def search_recipes(self, query: str, top_k: int = 5, filters: Optional[Dict] = None, min_score: float = 0.0) -> List[Dict]:
-        all_terms, ingredient_terms = self._extract_key_terms(query)
-        query_embedding = self.embed_query(query)
+        meal_types = {
+            "breakfast", "lunch", "dinner", "snack", "appetizer", 
+            "dessert", "soup", "salad", "main", "side",
+        }
 
-        results = self.collection.query(
-            query_embeddings=[query_embedding.tolist()],
-            n_results=top_k*3,
-            include=["metadatas", "documents", "distances"]
+        stop_words = {
+            "how", "to", "make", "recipe", "for", "a", "an",
+            "the", "with", "and", "or", "of", "in", "some", "get", "me",
+        }
+
+        # Extract words
+        words = [
+            w.strip("?,.!").lower()
+            for w in query.split()
+            if w.lower() not in stop_words and len(w) > 2
+        ]
+
+        # Categorize terms
+        ingredients = [w for w in words if w in common_ingredients]
+        methods = [w for w in words if w in cooking_methods]
+        meal_type = [w for w in words if w in meal_types]
+        
+        # All searchable terms
+        all_terms = list(set(ingredients + methods + meal_type + words))
+        
+        return all_terms, ingredients, methods, meal_type
+    
+    def search_recipes(self, query: str, top_k: int = 5):
+        """
+        MCP compatibility wrapper.
+        Internally uses Chroma search with LOWER threshold.
+        """
+        return self.search_chroma(
+            query=query,
+            top_k=top_k,
+            filters=None,
+            min_score=0.35  # LOWERED from 0.6 to 0.35 for better recall
         )
 
-        metadatas = results['metadatas'][0]
-        distances = results['distances'][0]
-        filtered_results = []
+    def _check_keyword_match(self, all_terms, ingredient_terms, methods, text):
+        """
+        Improved keyword matching - more lenient
+        Returns: (boost_score, has_keyword_match, match_details)
+        """
+        text = text.lower()
 
-        for i, meta in enumerate(metadatas):
-            text_blob = f"{meta.get('title','')} {meta.get('category','')} {meta.get('cuisine','')} {meta.get('ingredients','')}"
-            boost, valid = self._check_keyword_match(all_terms, ingredient_terms, text_blob)
-            similarity = max(0.0, min(1.0, 1 - distances[i] + boost))
+        # Check for conflicting ingredients (optional filtering)
+        ingredient_conflicts = {
+            "chicken": ["tofu", "vegan", "vegetarian"],
+            "tofu": ["chicken", "beef", "pork", "meat"],
+            "paneer": [],  # Paneer rarely conflicts
+            "beef": ["vegan", "vegetarian"],
+            "pork": ["halal", "kosher"],
+        }
 
-            # Apply filters
-            passes_filter = True
-            if filters:
-                for k, v in filters.items():
-                    val = meta.get(k, '').lower() if meta.get(k) else ''
-                    if isinstance(v, str):
-                        if val != v.lower():
-                            passes_filter = False
-                    elif isinstance(v, list):
-                        if val not in [x.lower() for x in v]:
-                            passes_filter = False
+        # Soft conflict check - don't reject, just reduce score slightly
+        conflict_penalty = 0.0
+        for ing in ingredient_terms:
+            for conflict in ingredient_conflicts.get(ing, []):
+                if conflict in text:
+                    conflict_penalty -= 0.1  # Small penalty, not rejection
 
-            if similarity >= min_score and valid and passes_filter:
-                filtered_results.append({
-                    "id": meta['id'],
-                    "score": similarity,
-                    "metadata": meta,
-                    "keyword_match": valid
-                })
+        # Check if ANY ingredient term matches (not all required)
+        ingredient_matches = sum(1 for ing in ingredient_terms if ing in text)
+        has_ingredient_match = ingredient_matches > 0
+        
+        # Check if ANY cooking method matches
+        method_matches = sum(1 for method in methods if method in text)
+        
+        # Check overall term matches
+        overall_matches = sum(1 for t in all_terms if t in text)
+        
+        # Calculate boost based on matches
+        boost = 0.0
+        
+        # Boost for ingredient matches (most important)
+        if ingredient_matches > 0:
+            boost += min(0.20, ingredient_matches * 0.08)
+        
+        # Boost for method matches
+        if method_matches > 0:
+            boost += min(0.10, method_matches * 0.05)
+        
+        # Boost for overall term matches
+        if overall_matches > 0:
+            boost += min(0.15, overall_matches * 0.03)
+        
+        # Apply conflict penalty
+        boost += conflict_penalty
+        
+        # Has keyword match if we found ingredients OR methods OR multiple terms
+        has_keyword_match = (
+            ingredient_matches > 0 or 
+            method_matches > 0 or 
+            overall_matches >= 2
+        )
+        
+        match_details = {
+            "ingredient_matches": ingredient_matches,
+            "method_matches": method_matches,
+            "overall_matches": overall_matches,
+        }
 
-        filtered_results.sort(key=lambda x: x['score'], reverse=True)
-        return filtered_results[:top_k]
+        return boost, has_keyword_match, match_details
 
-    # -------------------- Recipe Details --------------------
-    def get_recipe_details(self, recipe_id: str) -> Optional[Dict]:
-        result = self.collection.get(ids=[recipe_id])
-        if not result['metadatas'] or len(result['metadatas'][0]) == 0:
-            return None
-        return result['metadatas'][0][0]
+    # -------------------- Search --------------------
 
-    # -------------------- Similar Recipes --------------------
-    def get_similar_recipes(self, recipe_id: str, top_k: int = 5) -> List[Dict]:
-        recipe = self.get_recipe_details(recipe_id)
-        if not recipe or 'embedding' not in recipe:
+    def search_chroma(
+        self,
+        query: str,
+        top_k: int = 5,
+        filters: Optional[Dict] = None,
+        min_score: float = 0.35,  # Lowered default threshold
+    ) -> List[Dict]:
+        """
+        Search ChromaDB with semantic similarity + keyword matching
+        """
+        print(f"    🔍 Searching ChromaDB for: '{query}'")
+        print(f"    📊 Parameters: top_k={top_k}, min_score={min_score}")
+
+        # Extract search terms
+        all_terms, ingredient_terms, methods, meal_types = self._extract_key_terms(query)
+        print(f"    🔑 Key terms: {all_terms[:5]}")
+        print(f"    🥘 Ingredients: {ingredient_terms}")
+        print(f"    👨‍🍳 Methods: {methods}")
+        
+        # Get embedding
+        embedding = self.embed_query(query)
+
+        # Query ChromaDB - get more results for filtering
+        results = self.collection.query(
+            query_embeddings=[embedding.tolist()],
+            n_results=min(top_k * 5, 50),  # Get more candidates
+            include=["metadatas", "distances"],
+        )
+
+        metadatas = results["metadatas"][0]
+        distances = results["distances"][0]
+
+        if not metadatas:
+            print(f"    ⚠️ No results from ChromaDB")
             return []
 
+        print(f"    📋 ChromaDB returned {len(metadatas)} candidates")
+
+        final = []
+
+        for meta, dist in zip(metadatas, distances):
+            # Create searchable text blob from metadata
+            text_blob = " ".join([
+                str(meta.get("title", "")),
+                str(meta.get("category", "")),
+                str(meta.get("cuisine", "")),
+                " ".join(meta.get("ingredients", [])) if isinstance(meta.get("ingredients"), list) else str(meta.get("ingredients", "")),
+            ])
+
+            # Check keyword matching
+            boost, has_keyword_match, match_details = self._check_keyword_match(
+                all_terms, ingredient_terms, methods, text_blob
+            )
+
+            # Calculate final score
+            base_score = 1 - dist  # Convert distance to similarity
+            final_score = max(0.0, min(1.0, base_score + boost))
+
+            # Log matching details for debugging
+            title = meta.get("title", "Unknown")[:40]
+            print(f"      • {title}: base={base_score:.3f}, boost={boost:.3f}, final={final_score:.3f}, keyword={has_keyword_match}")
+
+            # Skip if below threshold (but keep if strong keyword match)
+            if final_score < min_score and not (has_keyword_match and base_score > 0.30):
+                continue
+
+            # Apply additional filters if provided
+            if filters:
+                passed = True
+                for k, v in filters.items():
+                    val = str(meta.get(k, "")).lower()
+                    if isinstance(v, str) and val != v.lower():
+                        passed = False
+                    if isinstance(v, list) and val not in [x.lower() for x in v]:
+                        passed = False
+                if not passed:
+                    continue
+
+            # Add to results
+            final.append({
+                "id": meta.get("id", "unknown"),
+                "score": final_score,
+                "metadata": meta,
+                "keyword_match": has_keyword_match,  # ADD THIS FIELD
+                "match_details": match_details,
+            })
+
+        # Sort by score
+        final.sort(key=lambda x: x["score"], reverse=True)
+        
+        top_results = final[:top_k]
+        print(f"    ✅ Returning {len(top_results)} results (after filtering)")
+        
+        return top_results
+
+    # -------------------- Recipe Context --------------------
+    
+    def get_recipe_context(self, recipe_ids: List[str], detailed: bool = True) -> str:
+        """
+        Get formatted recipe context for LLM summarization
+        """
+        context = ""
+        
+        for recipe_id in recipe_ids:
+            result = self.collection.get(ids=[recipe_id], include=["metadatas"])
+            
+            if not result["metadatas"] or not result["metadatas"][0]:
+                continue
+            
+            meta = result["metadatas"][0]
+            
+            context += f"\n{'='*50}\n"
+            context += f"Recipe: {meta.get('title', 'Unknown')}\n"
+            
+            if detailed:
+                # Ingredients
+                ingredients = meta.get('ingredients', [])
+                if ingredients:
+                    context += "\nIngredients:\n"
+                    for ing in ingredients[:15]:
+                        context += f"- {ing}\n"
+                
+                # Instructions
+                instructions = meta.get('instructions', [])
+                if instructions:
+                    context += "\nInstructions:\n"
+                    for i, step in enumerate(instructions[:10], 1):
+                        context += f"{i}. {step}\n"
+                
+                # Facts
+                if meta.get('prep_time') or meta.get('cook_time'):
+                    context += "\nDetails:\n"
+                    if meta.get('prep_time'):
+                        context += f"- Prep Time: {meta['prep_time']}\n"
+                    if meta.get('cook_time'):
+                        context += f"- Cook Time: {meta['cook_time']}\n"
+                    if meta.get('total_time'):
+                        context += f"- Total Time: {meta['total_time']}\n"
+                    if meta.get('servings'):
+                        context += f"- Servings: {meta['servings']}\n"
+                    if meta.get('calories'):
+                        context += f"- Calories: {meta['calories']}\n"
+            
+            if meta.get('url'):
+                context += f"\nSource: {meta['url']}\n"
+        
+        return context
+
+    # -------------------- Recipe Details --------------------
+
+    def get_recipe_details(self, recipe_id: str) -> Optional[Dict]:
+        result = self.collection.get(ids=[recipe_id])
+        if not result["metadatas"] or not result["metadatas"][0]:
+            return None
+        return result["metadatas"][0]
+
+    # -------------------- Similar Recipes --------------------
+
+    def get_similar_recipes(self, recipe_id: str, top_k: int = 5) -> List[Dict]:
+        recipe = self.get_recipe_details(recipe_id)
+        if not recipe:
+            return []
+
+        # Get recipe embedding from metadata or re-embed title
+        if "embedding" in recipe:
+            query_embedding = recipe["embedding"]
+        else:
+            # Re-embed using title
+            query_embedding = self.embed_query(recipe.get("title", "")).tolist()
+
         results = self.collection.query(
-            query_embeddings=[recipe['embedding']],
-            n_results=top_k+1,
-            include=["metadatas", "documents", "distances"]
+            query_embeddings=[query_embedding],
+            n_results=top_k + 1,
+            include=["metadatas", "distances"],
         )
 
         similar = []
-        for meta, dist in zip(results['metadatas'][0], results['distances'][0]):
-            if meta['id'] == recipe_id:
+        for meta, dist in zip(results["metadatas"][0], results["distances"][0]):
+            if meta.get("id") == recipe_id:
                 continue
             similar.append({
-                "id": meta['id'],
+                "id": meta.get("id"),
                 "score": 1 - dist,
-                "metadata": meta
+                "metadata": meta,
             })
+
         return similar[:top_k]
 
-    # -------------------- Recipe Context --------------------
-    def get_recipe_context(self, recipe_ids: List[str], detailed: bool = True) -> str:
-        context_parts = []
-        for rid in recipe_ids:
-            meta = self.get_recipe_details(rid)
-            if not meta:
-                continue
-            if detailed:
-                context = f"""
-                    Recipe: {meta['title']}
-                    Category: {meta.get('category', 'N/A')}
-                    Cuisine: {meta.get('cuisine', 'N/A')}
-                    Prep Time: {meta.get('prep_time', 'N/A')}
-                    Cook Time: {meta.get('cook_time', 'N/A')}
-                    Total Time: {meta.get('total_time', 'N/A')}
-                    Servings: {meta.get('servings', 'N/A')}
-                    Calories: {meta.get('calories', 'N/A')}
-                    Ingredients: {meta.get('ingredient_count', 'N/A')} items
-                    Instructions: {meta.get('step_count', 'N/A')} steps
-                    URL: {meta.get('url', 'N/A')}
-                    """
-            else:
-                context = f"{meta['title']} - {meta.get('category','N/A')} ({meta.get('total_time','N/A')}) | Rating: {meta.get('rating','N/A')}/5 | URL: {meta.get('url','N/A')}"
-            context_parts.append(context.strip())
-        return "\n\n---\n\n".join(context_parts)
+    # -------------------- LLM Generation --------------------
 
-    # -------------------- LLM Recipe Suggestion --------------------
     def generate_recipe_suggestion(self, query: str) -> str:
-        all_terms, ingredient_terms = self._extract_key_terms(query)
-        web_query = f"{query} with {' '.join(ingredient_terms)}" if ingredient_terms else query
-
-        search = self.mcp_tools.search_recipe_web(query=web_query, max_results=5)
+        search = self.mcp_tools.search_recipe_web(query=query, max_results=5)
 
         if not search.get("success") or not search.get("results"):
-            protein = ", ".join(ingredient_terms) if ingredient_terms else "your preference"
-            return f"I couldn’t find a recipe for **{query}** using **{protein}**. Try relaxing ingredients or checking online sources!"
+            return f"I couldn't find a recipe for **{query}**."
 
-        # Fetch top recipe
         recipe_url = search["results"][0]["url"]
         recipe = self.mcp_tools.fetch_recipe_from_url(recipe_url)
+
         if not recipe.get("success"):
-            return f"I found a recipe URL but couldn't fetch details. Try visiting {recipe_url}"
+            return f"I found a recipe but couldn't fetch details."
 
         model = genai.GenerativeModel(
             model_name=self.generation_model,
-            system_instruction="""
-                You may ONLY summarize the provided recipe.
-                Do NOT invent ingredients or steps.
-                Do NOT substitute proteins.
-            """
+            system_instruction=(
+                "Only summarize the given recipe. "
+                "Do not invent ingredients or steps."
+            ),
         )
+
         prompt = f"""
-User query: {query}
-Title: {recipe.get('title')}
-Ingredients: {recipe.get('ingredients')}
-Instructions: {recipe.get('instructions')}
-Source: {recipe.get('url')}
-"""
+            Title: {recipe.get('title')}
+            Ingredients: {recipe.get('ingredients')}
+            Instructions: {recipe.get('instructions')}
+            Source: {recipe.get('url')}
+            """
+
         response = model.generate_content(
             prompt,
-            generation_config={"temperature": 0.3, "max_output_tokens": 800}
+            generation_config={"temperature": 0.3, "max_output_tokens": 200},
         )
+
         return response.text
 
-    # -------------------- Answer Question --------------------
-    def answer_question(self, question: str, top_k: int = 3,
-                        filters: Optional[Dict] = None,
-                        similarity_threshold: float = 0.5,
-                        use_mcp_orchestrator: bool = True) -> Dict:
+    # -------------------- RAG Entry --------------------
+
+    def answer_question(
+        self,
+        question: str,
+        top_k: int = 3,
+        filters: Optional[Dict] = None,
+        similarity_threshold: float = 0.35,  # Lowered from 0.5
+        use_mcp_orchestrator: bool = True,
+    ) -> Dict:
+
         if use_mcp_orchestrator:
             self.setup_mcp_orchestrator()
-            orchestrator_result = self.mcp_orchestrator.process_query(
+            result = self.mcp_orchestrator.process_query(
                 query=question,
                 top_k=top_k,
-                similarity_threshold=similarity_threshold
+                similarity_threshold=similarity_threshold,
             )
+
             return {
                 "question": question,
-                "response": orchestrator_result["message"],
-                "context": None,
-                "sources": orchestrator_result.get("recipes", []),
-                "top_recipe": orchestrator_result["recipes"][0] if orchestrator_result["recipes"] else None,
-                "generated": not orchestrator_result["has_database_results"],
-                "mcp_result": orchestrator_result
+                "response": result["message"],
+                "sources": result.get("recipes", []),
+                "generated": not result["has_database_results"],
             }
 
-        results = self.search_recipes(question, top_k=top_k, filters=filters, min_score=similarity_threshold)
+        results = self.search_chroma(
+            question,
+            top_k=top_k,
+            filters=filters,
+            min_score=similarity_threshold,
+        )
+
         if not results:
             return {
                 "question": question,
                 "response": self.generate_recipe_suggestion(question),
-                "context": None,
                 "sources": [],
-                "top_recipe": None,
                 "generated": True,
-                "message": "No database matches."
             }
 
-        context = self.get_recipe_context([r['id'] for r in results], detailed=True)
         return {
             "question": question,
             "response": None,
-            "context": context,
             "sources": results,
-            "top_recipe": results[0],
-            "generated": False
+            "generated": False,
         }
 
-    # -------------------- Statistics --------------------
+    # -------------------- Stats --------------------
+
     def get_statistics(self) -> Dict:
-        metadatas = self.collection.get(include=["metadatas"])['metadatas'][0]
-        categories, cuisines, ratings = {}, {}, []
-        for meta in metadatas:
-            categories[meta.get('category','Unknown')] = categories.get(meta.get('category','Unknown'),0)+1
-            if meta.get('cuisine'):
-                cuisines[meta.get('cuisine')] = cuisines.get(meta.get('cuisine'),0)+1
-            if meta.get('rating'):
-                ratings.append(float(meta['rating']))
-        return {
-            "total_recipes": len(metadatas),
-            "categories": dict(sorted(categories.items(), key=lambda x: x[1], reverse=True)),
-            "cuisines": dict(sorted(cuisines.items(), key=lambda x: x[1], reverse=True)),
-            "average_rating": np.mean(ratings) if ratings else 0,
-            "top_categories": list(categories.keys())[:5],
-            "top_cuisines": list(cuisines.keys())[:5] if cuisines else []
-        }
+        try:
+            metadatas = self.collection.get(include=["metadatas"])["metadatas"]
+            
+            # Handle empty collection
+            if not metadatas or not metadatas[0]:
+                return {
+                    "total_recipes": 0,
+                    "categories": {},
+                    "cuisines": {},
+                    "average_rating": 0.0,
+                }
 
+            categories, cuisines, ratings = {}, {}, []
 
+            for meta in metadatas[0]:
+                categories[meta.get("category", "Unknown")] = (
+                    categories.get(meta.get("category", "Unknown"), 0) + 1
+                )
 
-# Example usage and testing
-if __name__ == "__main__":
-    print("🚀 Recipe RAG Engine - Enhanced Version")
-    print("="*80)
-    
-    # Initialize RAG engine
-    rag = RecipeRAGEngine()
-    
-    # Show statistics
-    print("\n📊 Recipe Database Statistics:")
-    stats = rag.get_statistics()
-    print(f"   Total recipes: {stats['total_recipes']}")
-    print(f"   Average rating: {stats['average_rating']:.2f}/5")
-    print(f"   Top categories: {', '.join(stats['top_categories'])}")
-    if stats['top_cuisines']:
-        print(f"   Top cuisines: {', '.join(stats['top_cuisines'])}")
-    
-    # Test queries
-    print("\n" + "="*80)
-    print("🔍 Testing Search Queries")
-    print("="*80)
-    
-    queries = [
-        {"query": "quick chicken dinner", "filters": None},
-        {"query": "healthy vegetarian recipes", "filters": None},
-        {"query": "chocolate dessert", "filters": None},
-        {"query": "pasta", "filters": {"category": "Chicken"}},
-    ]
-    
-    for test in queries:
-        query = test["query"]
-        filters = test["filters"]
-        
-        print(f"\n🔍 Query: '{query}'")
-        if filters:
-            print(f"   Filters: {filters}")
-        
-        results = rag.search_recipes(query, top_k=3, filters=filters)
-        
-        if results:
-            print(f"\n   Top 3 results:")
-            for i, result in enumerate(results):
-                meta = result['metadata']
-                print(f"\n   {i+1}. {meta['title']}")
-                print(f"      Score: {result['score']:.4f}")
-                print(f"      Category: {meta.get('category', 'N/A')}")
-                print(f"      Time: {meta.get('total_time', 'N/A')}")
-                print(f"      Rating: {meta.get('rating', 'N/A')}/5")
-                print(f"      URL: {meta.get('url', 'N/A')}")
-        else:
-            print("   No results found")
-    
-    # Test similar recipes
-    print("\n" + "="*80)
-    print("🔗 Testing Similar Recipes")
-    print("="*80)
-    
-    if len(rag.ids) > 0:
-        test_recipe_id = rag.ids[0]
-        recipe_details = rag.get_recipe_details(test_recipe_id)
-        print(f"\nBase Recipe: {recipe_details['title']}")
-        
-        similar = rag.get_similar_recipes(test_recipe_id, top_k=3)
-        print(f"\nSimilar recipes:")
-        for i, result in enumerate(similar):
-            meta = result['metadata']
-            print(f"   {i+1}. {meta['title']} (similarity: {result['score']:.4f})")
-    
-    # Test full RAG answer
-    print("\n" + "="*80)
-    print("💬 Testing RAG Answer Generation")
-    print("="*80)
-    
-    answer = rag.answer_question("What's a good recipe for a quick weeknight dinner?", top_k=2)
-    print(f"\nQuestion: {answer['question']}")
-    print(f"\nContext generated for LLM:")
-    print(answer['context'][:500] + "...")
-    print(f"\nNumber of sources: {len(answer['sources'])}")
-    
-    print("\n" + "="*80)
-    print("✅ All tests complete!")
-    print("="*80)
+                if meta.get("cuisine"):
+                    cuisines[meta["cuisine"]] = cuisines.get(meta["cuisine"], 0) + 1
+
+                if meta.get("rating"):
+                    try:
+                        ratings.append(float(meta["rating"]))
+                    except:
+                        pass
+
+            return {
+                "total_recipes": len(metadatas[0]),
+                "categories": categories,
+                "cuisines": cuisines,
+                "average_rating": float(np.mean(ratings)) if ratings else 0.0,
+            }
+        except Exception as e:
+            print(f"Error getting statistics: {e}")
+            return {
+                "total_recipes": 0,
+                "categories": {},
+                "cuisines": {},
+                "average_rating": 0.0,
+            }

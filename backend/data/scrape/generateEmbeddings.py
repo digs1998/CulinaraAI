@@ -32,12 +32,22 @@ class RecipeEmbedder:
         self.batch_size = batch_size
         self.chunk_size = chunk_size
 
-        # Chroma client
-        self.chroma = Client(Settings(
-            persist_directory=self.persist_dir,
-            anonymized_telemetry=False
-        ))
-        self.collection = self.chroma.get_or_create_collection(self.collection_name)
+        # Chroma client - use PersistentClient for better reliability
+        from chromadb import PersistentClient
+        self.chroma = PersistentClient(path=self.persist_dir)
+        
+        # Delete existing collection to start fresh
+        try:
+            self.chroma.delete_collection(self.collection_name)
+            print(f"🗑️  Deleted existing collection '{self.collection_name}'")
+        except:
+            pass
+        
+        self.collection = self.chroma.create_collection(
+            name=self.collection_name,
+            metadata={"description": "Recipe embeddings for RAG search"}
+        )
+        print(f"✅ Created new collection '{self.collection_name}'")
 
         # Gemini configuration
         if self.provider == "gemini":
@@ -64,7 +74,7 @@ class RecipeEmbedder:
                 result = genai.embed_content(
                     model=model,
                     content=text,
-                    task_type="retrieval_query"
+                    task_type="retrieval_document"  # Changed from retrieval_query
                 )
                 embedding = result.get("embedding")
                 if not embedding:
@@ -82,13 +92,39 @@ class RecipeEmbedder:
                 return embedding
             except Exception as e:
                 wait_time = 2 ** attempt
-                print(f"⚠ Error generating embedding, retrying in {wait_time}s... ({attempt+1}/{max_retries})")
+                print(f"⚠️ Error generating embedding, retrying in {wait_time}s... ({attempt+1}/{max_retries})")
+                print(f"   Error: {str(e)[:100]}")
                 time.sleep(wait_time)
 
         raise RuntimeError("Failed to generate embedding after multiple retries.")
 
     # -----------------------------
-    # Ingest JSONL with chunking
+    # Flatten metadata for ChromaDB
+    # -----------------------------
+    def _flatten_metadata(self, metadata: dict) -> dict:
+        """
+        ChromaDB requires flat metadata (no nested dicts/lists).
+        Convert all values to strings or numbers.
+        """
+        flat = {}
+        for key, value in metadata.items():
+            if value is None:
+                continue
+            elif isinstance(value, (str, int, float, bool)):
+                flat[key] = value
+            elif isinstance(value, list):
+                # Convert list to comma-separated string
+                flat[key] = ", ".join(str(v) for v in value)
+            elif isinstance(value, dict):
+                # Skip nested dicts or flatten them
+                continue
+            else:
+                flat[key] = str(value)
+        
+        return flat
+
+    # -----------------------------
+    # Ingest JSONL WITHOUT chunking (better for RAG)
     # -----------------------------
     def ingest_jsonl(self, jsonl_path: str):
         print(f"📥 Reading recipes from {jsonl_path}")
@@ -96,35 +132,66 @@ class RecipeEmbedder:
             docs = [json.loads(line) for line in f]
 
         print(f"📦 Generating embeddings for {len(docs)} recipes...")
+        print(f"⚙️  Batch size: {self.batch_size}")
 
-        for i in tqdm(range(0, len(docs), self.batch_size)):
-            batch = docs[i:i+self.batch_size]
+        all_ids = []
+        all_documents = []
+        all_metadatas = []
+        all_embeddings = []
 
-            chunked_texts = []
-            chunked_ids = []
-            chunked_metadatas = []
+        for i, doc in enumerate(tqdm(docs), 1):
+            try:
+                # Get full text (no chunking - keep recipe intact)
+                text = doc["text"]
+                recipe_id = doc["id"]
+                
+                # Generate embedding
+                embedding = self._generate_embedding(text)
+                
+                # Flatten metadata
+                metadata = self._flatten_metadata(doc.get("metadata", {}))
+                # Add recipe ID to metadata
+                metadata["id"] = recipe_id
+                
+                all_ids.append(recipe_id)
+                all_documents.append(text)
+                all_metadatas.append(metadata)
+                all_embeddings.append(embedding)
+                
+                # Insert in batches to avoid rate limits
+                if len(all_ids) >= self.batch_size:
+                    self.collection.add(
+                        ids=all_ids,
+                        documents=all_documents,
+                        metadatas=all_metadatas,
+                        embeddings=all_embeddings
+                    )
+                    print(f"   ✅ Inserted batch ({len(all_ids)} recipes)")
+                    all_ids = []
+                    all_documents = []
+                    all_metadatas = []
+                    all_embeddings = []
+                    
+                    # Rate limiting pause
+                    time.sleep(1)
+                
+            except Exception as e:
+                print(f"⚠️ Skipping recipe {i} due to error: {str(e)[:100]}")
+                continue
 
-            # Chunk each recipe
-            for doc in batch:
-                chunks = self.chunk_text(doc["text"])
-                for idx, chunk in enumerate(chunks):
-                    chunked_texts.append(chunk)
-                    chunked_ids.append(f"{doc['id']}_chunk{idx+1}")
-                    metadata = doc.get("metadata", {})
-                    chunked_metadatas.append({k: v for k, v in metadata.items() if v is not None})
-
-            # Generate embeddings for chunks
-            embeddings = [self._generate_embedding(text) for text in chunked_texts]
-
-            # Add to Chroma
+        # Insert remaining recipes
+        if all_ids:
             self.collection.add(
-                ids=chunked_ids,
-                documents=chunked_texts,
-                metadatas=chunked_metadatas,
-                embeddings=embeddings
+                ids=all_ids,
+                documents=all_documents,
+                metadatas=all_metadatas,
+                embeddings=all_embeddings
             )
+            print(f"   ✅ Inserted final batch ({len(all_ids)} recipes)")
 
-        print(f"✅ Ingested {len(docs)} recipes (chunked) into ChromaDB at '{self.persist_dir}'")
+        total_count = self.collection.count()
+        print(f"\n✅ Successfully ingested {total_count} recipes into ChromaDB")
+        print(f"📊 Collection '{self.collection_name}' at '{self.persist_dir}'")
 
     # -----------------------------
     # Query example
@@ -133,6 +200,7 @@ class RecipeEmbedder:
         embedding = self._generate_embedding(query_text)
         results = self.collection.query(
             query_embeddings=[embedding],
-            n_results=k
+            n_results=k,
+            include=["metadatas", "distances", "documents"]
         )
         return results

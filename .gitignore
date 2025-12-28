@@ -46,3 +46,4 @@ htmlcov/
 *.json.bak
 backend/services/__pycache__
 recipes.db
+chroma_db/
