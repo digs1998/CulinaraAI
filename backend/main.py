@@ -9,6 +9,7 @@ import asyncio
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
 
@@ -265,12 +266,37 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # --------------------------------------------------
+# Serve Frontend Static Files (for production deployment)
+# --------------------------------------------------
+# Mount frontend build directory if it exists
+# Check both local dev path and Docker/Railway path
+frontend_paths = [
+    Path(__file__).parent / "frontend" / "dist",  # Docker/Railway path
+    Path(__file__).parent.parent / "frontend" / "dist",  # Local dev path
+]
+
+frontend_dist = None
+for path in frontend_paths:
+    if path.exists():
+        frontend_dist = path
+        break
+
+if frontend_dist:
+    logger.info(f"📦 Serving frontend from {frontend_dist}")
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+else:
+    logger.warning("⚠️ Frontend dist folder not found. API-only mode.")
+
+# --------------------------------------------------
 # Local Run
 # --------------------------------------------------
 if __name__ == "__main__":
+    # Use PORT environment variable (Railway uses 8080) or default to 8000 for local dev
+    port = int(os.getenv("PORT", 8000))
+
     uvicorn.run(
-        "backend.main:app",
+        "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=True,
     )

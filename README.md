@@ -486,16 +486,36 @@ npm run preview
 
 ## 🚀 Deployment
 
-### Docker (Recommended)
+### Railway (Full-Stack Single Service)
+
+The project includes a **multi-stage Dockerfile** that builds both frontend and backend into a single container on port 8080:
+
+1. **Push to GitHub**
+2. **Connect to Railway** - Import your repo
+3. **Add Environment Variables**:
+   - `GEMINI_API_KEY`
+   - `PINECONE_API_KEY`
+   - `GROQ_API_KEY`
+   - `ENVIRONMENT=production`
+4. **Deploy** - Railway auto-detects the Dockerfile and builds everything
+
+The backend serves the frontend static files automatically! ✨
+
+### Docker (Local Development)
 ```bash
-docker-compose up -d --build
+docker-compose up --build
 ```
 
-### Manual Deployment
-1. Set environment variables on your server
-2. Build frontend: `npm run build`
-3. Run backend: `python main.py`
-4. Serve frontend static files with nginx
+### Separate Deployments (Alternative)
+
+**Backend (Railway):**
+- Deploy `backend/` folder only
+- Port 8080 (automatic)
+
+**Frontend (Vercel/Netlify):**
+- Deploy `frontend/` folder
+- Build command: `npm run build`
+- Set `VITE_API_URL` to your Railway backend URL
 
 ---
 
