@@ -30,7 +30,7 @@ async def scrape_recipes_pipeline():
             "www.americastestkitchen.com",
             "www.blueapron.com",
         ],
-        max_recipes=1000,
+        max_recipes=300,
         db_path="recipes.db",
     )
 
