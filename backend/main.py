@@ -114,8 +114,15 @@ async def startup():
 # --------------------------------------------------
 # Schemas
 # --------------------------------------------------
+class UserPreferences(BaseModel):
+    diets: List[str]
+    skill: str
+    servings: int
+    goal: str
+
 class ChatRequest(BaseModel):
     message: str
+    preferences: Optional[UserPreferences] = None
 
 class RecipeResult(BaseModel):
     title: str
@@ -133,16 +140,18 @@ class ChatResponse(BaseModel):
 # --------------------------------------------------
 # MCP Pipeline
 # --------------------------------------------------
-def mcp_process_query(query: str) -> Dict:
+def mcp_process_query(query: str, preferences: Optional[UserPreferences] = None) -> Dict:
     if not mcp_orchestrator:
         raise RuntimeError("MCP Orchestrator not initialized")
 
     logger.info("=" * 60)
     logger.info(f"🎯 MCP Orchestrator Processing: '{query}'")
+    if preferences:
+        logger.info(f"👤 User Preferences: diets={preferences.diets}, skill={preferences.skill}, servings={preferences.servings}, goal={preferences.goal}")
     logger.info("=" * 60)
 
     # Step 1: Process query via MCP orchestrator
-    orchestrator_result = mcp_orchestrator.process_query(query)
+    orchestrator_result = mcp_orchestrator.process_query(query, preferences=preferences)
 
     recipes_list = []
     facts_list = orchestrator_result.get("facts", [])
@@ -227,7 +236,7 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     try:
-        result = mcp_process_query(req.message.strip())
+        result = mcp_process_query(req.message.strip(), preferences=req.preferences)
         
         # Ensure recipes have proper structure and valid scores
         validated_recipes = []

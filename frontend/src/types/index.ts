@@ -22,7 +22,15 @@ export interface ChatResponse {
   facts?: string[];
 }
 
+export interface UserPreferences {
+  diets: string[];
+  skill: string;
+  servings: number;
+  goal: string;
+}
+
 export interface ChatRequest {
   message: string;
   conversation_id?: string;
+  preferences?: UserPreferences;
 }

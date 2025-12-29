@@ -62,27 +62,34 @@ class MCPOrchestrator:
         else:
             print("🎯 Using Gemini as primary LLM for facts generation")
 
-    def process_query(self, query: str, top_k: int = 3, similarity_threshold: float = 0.50) -> Dict:
+    def process_query(self, query: str, top_k: int = 3, similarity_threshold: float = 0.50, preferences=None) -> Dict:
         """
         Main MCP pipeline
-        
+
         Args:
             query: User's search query
             top_k: Number of results to return (default: 3 for top 3)
             similarity_threshold: Minimum similarity score (lowered to 0.50 for better recall)
+            preferences: Optional user preferences (diets, skill, servings, goal)
         """
         print(f"\n{'='*60}")
         print(f"🎯 MCP Orchestrator Processing: '{query}'")
+        if preferences:
+            print(f"👤 User Preferences Applied:")
+            print(f"   • Diets: {preferences.diets}")
+            print(f"   • Skill: {preferences.skill}")
+            print(f"   • Servings: {preferences.servings}")
+            print(f"   • Goal: {preferences.goal}")
         print(f"{'='*60}\n")
 
         # Step 1: RAG DB - try to find in database first
-        rag_result = self._process_rag_pipeline(query, top_k, similarity_threshold)
+        rag_result = self._process_rag_pipeline(query, top_k, similarity_threshold, preferences)
 
         # Step 2: Web fallback if no DB results
         web_result = None
         if not rag_result["has_results"]:
             print("\n⚠️ No results in database, falling back to web search...\n")
-            web_result = self._process_web_pipeline(query)
+            web_result = self._process_web_pipeline(query, preferences)
         else:
             print("\n✓ Found results in database, skipping web search")
             web_result = {"has_results": False, "search_result": None, "summary": None, "source": "Internet"}
@@ -91,7 +98,7 @@ class MCPOrchestrator:
         combined_response = self._combine_results(query, rag_result, web_result)
         return combined_response
 
-    def _process_rag_pipeline(self, query: str, top_k: int, similarity_threshold: float) -> Dict:
+    def _process_rag_pipeline(self, query: str, top_k: int, similarity_threshold: float, preferences=None) -> Dict:
         """Query RAG DB → summarize with LLM"""
         print("📚 RAG DB Pipeline:")
         print("  → Searching local database...")
@@ -109,6 +116,22 @@ class MCPOrchestrator:
             for result in rag_results:
                 score = result.get('score', 0.0)
                 has_keyword = result.get('keyword_match', False)
+
+                # Apply dietary preference filtering
+                if preferences and preferences.diets:
+                    recipe_title = result.get('metadata', {}).get('title', '').lower()
+                    recipe_ingredients = ' '.join(result.get('metadata', {}).get('ingredients', [])).lower()
+
+                    # Check if recipe matches dietary preferences
+                    dietary_match = self._check_dietary_compatibility(
+                        recipe_title,
+                        recipe_ingredients,
+                        preferences.diets
+                    )
+
+                    if not dietary_match:
+                        print(f"  ⚬ Filtered (diet): {result.get('metadata', {}).get('title', 'Recipe')[:50]} (not {', '.join(preferences.diets).lower()})")
+                        continue
 
                 # Accept if: (high score) OR (decent score + keyword match) OR (keyword match with okay score)
                 if score >= similarity_threshold or (score >= 0.40 and has_keyword) or (has_keyword and score >= 0.35):
@@ -147,12 +170,69 @@ class MCPOrchestrator:
             "source": "RAG Database"
         }
 
-    def _process_web_pipeline(self, query: str) -> Dict:
+    def _check_dietary_compatibility(self, title: str, ingredients: str, diet_preferences: List[str]) -> bool:
+        """Check if a recipe matches dietary preferences"""
+        # Common non-vegan/non-vegetarian ingredients
+        non_vegan_ingredients = ['chicken', 'beef', 'pork', 'fish', 'lamb', 'turkey', 'bacon', 'sausage',
+                                 'meat', 'egg', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'honey',
+                                 'whey', 'gelatin', 'lard']
+        non_vegetarian_ingredients = ['chicken', 'beef', 'pork', 'fish', 'lamb', 'turkey', 'bacon',
+                                      'sausage', 'meat', 'seafood', 'prawn', 'shrimp']
+
+        # Check each dietary preference
+        for diet in diet_preferences:
+            diet_lower = diet.lower()
+
+            if diet_lower == 'vegan':
+                # For vegan, check if recipe contains any non-vegan ingredients
+                for ingredient in non_vegan_ingredients:
+                    if ingredient in ingredients or ingredient in title:
+                        return False
+
+            elif diet_lower == 'vegetarian':
+                # For vegetarian, check if recipe contains meat/fish
+                for ingredient in non_vegetarian_ingredients:
+                    if ingredient in ingredients or ingredient in title:
+                        return False
+
+            elif diet_lower in ['keto', 'low carb']:
+                # Keto/low carb - avoid high-carb ingredients
+                high_carb = ['rice', 'pasta', 'bread', 'potato', 'noodle', 'flour', 'sugar']
+                # Allow if it doesn't have obvious high-carb ingredients
+                has_high_carb = any(carb in ingredients or carb in title for carb in high_carb)
+                if has_high_carb and not any(kw in title for kw in ['keto', 'low carb', 'cauliflower']):
+                    return False
+
+            elif diet_lower == 'gluten free':
+                # Gluten free - avoid wheat, barley, rye
+                gluten_ingredients = ['wheat', 'flour', 'pasta', 'bread', 'barley', 'rye', 'noodle']
+                # Allow if explicitly says gluten-free
+                if any(g in ingredients for g in gluten_ingredients):
+                    if 'gluten free' not in title and 'gluten-free' not in ingredients:
+                        return False
+
+            elif diet_lower == 'dairy free':
+                # Dairy free
+                dairy = ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'whey']
+                if any(d in ingredients for d in dairy):
+                    if 'dairy free' not in title and 'dairy-free' not in ingredients:
+                        return False
+
+        return True
+
+    def _process_web_pipeline(self, query: str, preferences=None) -> Dict:
         """Query web → scrape URLs via MCP → summarize with LLM"""
         print("\n🌐 Web Search Pipeline:")
         print("  → Searching internet...")
 
-        web_search_result = self.mcp_tools.search_recipe_web(query=query, max_results=5)
+        # Enhance query with dietary preferences if available
+        search_query = query
+        if preferences and preferences.diets:
+            diet_keywords = ' '.join(preferences.diets).lower()
+            search_query = f"{query} {diet_keywords}"
+            print(f"  → Enhanced query with diets: '{search_query}'")
+
+        web_search_result = self.mcp_tools.search_recipe_web(query=search_query, max_results=5)
 
         web_summary = None
         web_facts = []

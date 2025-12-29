@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { CulinaraAIAPI } from "../services/api";
 import { ChatMessage } from "../types";
 import { RecipeResults } from "../components/recipesResults.tsx";
+import { usePreferences } from "../contexts/PreferencesContext";
 
 // Helper function to get food category background image
 const getFoodBackgroundImage = (query: string): string => {
@@ -31,7 +32,12 @@ const getFoodBackgroundImage = (query: string): string => {
   return "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600";
 };
 
-export const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+  onBackToPreferences?: () => void;
+}
+
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreferences }) => {
+  const { preferences, clearPreferences } = usePreferences();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [input, setInput] = useState("");
@@ -41,6 +47,7 @@ export const ChatInterface: React.FC = () => {
   const [welcomeBackgroundImage, setWelcomeBackgroundImage] = useState(
     getFoodBackgroundImage("")
   );
+  const hasAutoQueried = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,18 +55,23 @@ export const ChatInterface: React.FC = () => {
 
   useEffect(scrollToBottom, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (messageOverride?: string) => {
+    const userMessage = messageOverride || input.trim();
+    if (!userMessage || isLoading) return;
 
-    const userMessage = input.trim();
-    setInput("");
+    if (!messageOverride) {
+      setInput("");
+    }
     setShowWelcome(false);
 
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
 
     try {
-      const response = await CulinaraAIAPI.sendMessage({ message: userMessage });
+      const response = await CulinaraAIAPI.sendMessage({
+        message: userMessage,
+        preferences: preferences || undefined
+      });
 
       console.log("📊 Backend response:", response);
       console.log("💡 Facts received:", response.facts);
@@ -87,6 +99,36 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
+  // Auto-query based on preferences when component mounts
+  useEffect(() => {
+    if (preferences && !hasAutoQueried.current) {
+      hasAutoQueried.current = true;
+
+      // Generate personalized query from preferences
+      const dietText = preferences.diets.length > 0
+        ? preferences.diets.join(", ").toLowerCase()
+        : "";
+
+      const goalMap: Record<string, string> = {
+        "Balanced": "balanced nutrition",
+        "Weight Loss": "weight loss and low calorie",
+        "Muscle Gain": "high protein and muscle building",
+        "Energy Boost": "energy boosting and high energy"
+      };
+
+      const parts = [];
+      if (dietText) parts.push(dietText);
+      parts.push(`${preferences.skill.toLowerCase()} difficulty`);
+      parts.push(`${preferences.servings} servings`);
+      if (preferences.goal) parts.push(goalMap[preferences.goal] || preferences.goal.toLowerCase());
+
+      const query = `Show me recipes that are ${parts.join(", ")}`;
+
+      handleSend(query);
+    }
+  }, [preferences]);
+
+
   return (
     <div
       style={{
@@ -112,13 +154,129 @@ export const ChatInterface: React.FC = () => {
           color: "white",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(34,197,94,0.35)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: "32px" }}>🍳 CulinaraAI</h1>
-        <p style={{ marginTop: 6, opacity: 0.95 }}>
-          Your AI Culinary Coach with Attitude 🌿
-        </p>
+        <div>
+          <h1 style={{ margin: 0, fontSize: "32px" }}>🍳 CulinaraAI</h1>
+          <p style={{ marginTop: 6, opacity: 0.95, marginBottom: 0 }}>
+            Your AI Culinary Coach with Attitude 🌿
+          </p>
+        </div>
+
+        {/* Settings Button */}
+        {onBackToPreferences && (
+          <button
+            onClick={() => {
+              clearPreferences();
+              onBackToPreferences();
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)";
+              e.currentTarget.style.transform = "scale(1.05)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "2px solid rgba(255, 255, 255, 0.3)",
+              borderRadius: "12px",
+              padding: "12px 20px",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            }}
+            title="Change your dietary preferences and settings"
+          >
+            <span style={{ fontSize: "20px" }}>⚙️</span>
+            <span>Preferences</span>
+          </button>
+        )}
       </div>
+
+      {/* Preferences Badge */}
+      {preferences && (
+        <div
+          style={{
+            background: "rgba(255, 255, 255, 0.95)",
+            borderBottom: "2px solid #bbf7d0",
+            padding: "12px 24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          <span style={{ fontSize: "14px", fontWeight: 600, color: "#166534" }}>
+            Active Preferences:
+          </span>
+          {preferences.diets.length > 0 && (
+            <span
+              style={{
+                background: "linear-gradient(135deg, #dcfce7, #bbf7d0)",
+                padding: "6px 14px",
+                borderRadius: "20px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "#166534",
+                border: "1px solid #86efac",
+              }}
+            >
+              🥗 {preferences.diets.join(", ")}
+            </span>
+          )}
+          <span
+            style={{
+              background: "linear-gradient(135deg, #fef3c7, #fde68a)",
+              padding: "6px 14px",
+              borderRadius: "20px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#92400e",
+              border: "1px solid #fcd34d",
+            }}
+          >
+            👨‍🍳 {preferences.skill}
+          </span>
+          <span
+            style={{
+              background: "linear-gradient(135deg, #dbeafe, #bfdbfe)",
+              padding: "6px 14px",
+              borderRadius: "20px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#1e40af",
+              border: "1px solid #93c5fd",
+            }}
+          >
+            🍽️ {preferences.servings} servings
+          </span>
+          <span
+            style={{
+              background: "linear-gradient(135deg, #fce7f3, #fbcfe8)",
+              padding: "6px 14px",
+              borderRadius: "20px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#9f1239",
+              border: "1px solid #f9a8d4",
+            }}
+          >
+            🎯 {preferences.goal}
+          </span>
+        </div>
+      )}
 
       {/* Messages */}
       <div
@@ -480,7 +638,7 @@ export const ChatInterface: React.FC = () => {
             disabled={isLoading}
           />
           <button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
             style={{
               marginLeft: "12px",
