@@ -16,7 +16,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [servings, setServings] = useState(2);
   const [goal, setGoal] = useState<string>("Balanced");
 
-  const dietOptions = ["Vegan", "Vegetarian", "Keto", "Paleo", "Gluten Free", "Dairy Free", "Low Carb", "Others"];
+  const dietOptions = ["Vegan", "Vegetarian", "Non-Vegetarian", "Keto", "Paleo", "Gluten Free", "Dairy Free", "Low Carb", "Others"];
   const skillOptions = ["Beginner", "Intermediate", "Advanced"];
   const goalOptions = ["Balanced", "Weight Loss", "Muscle Gain", "Energy Boost"];
 
@@ -31,6 +31,12 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   return (
     <>
       <style>{`
+        * {
+          box-sizing: border-box;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
         .onboarding-container {
           min-height: 100vh;
           background: linear-gradient(135deg, #1a1a1a 0%, #2d5016 50%, #1a1a1a 100%);
@@ -41,6 +47,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           justify-content: center;
           padding: 16px;
           overflow-y: auto;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
 
         .onboarding-card {
@@ -59,6 +66,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           font-size: 28px;
           margin-bottom: 8px;
           margin-top: 0;
+          line-height: 1.2;
         }
 
         .onboarding-subtitle {
@@ -77,6 +85,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           font-size: 14px;
           margin-bottom: 12px;
           letter-spacing: 0.5px;
+          margin-top: 0;
+          line-height: 1.3;
         }
 
         .diet-grid {
@@ -94,6 +104,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           cursor: pointer;
           font-size: 14px;
           transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1.2;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
 
         .diet-button:active {
@@ -129,6 +146,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           transition: all 0.2s;
           flex: 1;
           min-width: 90px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1.2;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
 
         .skill-button:active {
@@ -154,6 +178,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           cursor: pointer;
           transition: all 0.2s;
           min-width: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
 
         .servings-button:active {
@@ -183,6 +212,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           font-size: 15px;
           transition: all 0.2s;
           width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1.2;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
 
         .goal-button:active {
@@ -202,9 +238,52 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           width: 100%;
           max-width: 320px;
           transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
 
         .discover-button:active {
+          transform: scale(0.97);
+        }
+
+        .action-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          align-items: center;
+          margin-top: 8px;
+        }
+
+        .skip-button {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          padding: 12px 32px;
+          border-radius: 50px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+        .skip-button:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+
+        .skip-button:active {
           transform: scale(0.97);
         }
 
@@ -230,6 +309,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
           .section-title {
             font-size: 15px;
+          }
+
+          .diet-grid {
+            grid-template-columns: repeat(3, 1fr);
           }
 
           .diet-button {
@@ -268,6 +351,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             width: auto;
             padding: 18px 60px;
             font-size: 20px;
+          }
+
+          .action-buttons {
+            flex-direction: row;
+            gap: 16px;
+          }
+
+          .skip-button {
+            font-size: 16px;
+            padding: 14px 40px;
           }
         }
 
@@ -379,12 +472,20 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </div>
           </div>
 
-          <button
-            onClick={() => onComplete({ diets, skill, servings, goal })}
-            className="discover-button"
-          >
-            Discover Recipes
-          </button>
+          <div className="action-buttons">
+            <button
+              onClick={() => onComplete({ diets, skill, servings, goal })}
+              className="discover-button"
+            >
+              Discover Recipes
+            </button>
+            <button
+              onClick={() => onComplete({ diets: [], skill: "", servings: 2, goal: "" })}
+              className="skip-button"
+            >
+              Skip for now
+            </button>
+          </div>
         </div>
       </div>
     </>

@@ -106,6 +106,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
     if (preferences && !hasAutoQueried.current) {
       hasAutoQueried.current = true;
 
+      // Skip auto-query if user skipped onboarding (empty preferences)
+      const hasPreferences = preferences.diets.length > 0 || preferences.skill || preferences.goal;
+
+      if (!hasPreferences) {
+        // User skipped - just show welcome screen without auto-querying
+        return;
+      }
+
       // Generate personalized query from preferences
       const dietText = preferences.diets.length > 0
         ? preferences.diets.join(", ").toLowerCase()
@@ -120,7 +128,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
 
       const parts = [];
       if (dietText) parts.push(dietText);
-      parts.push(`${preferences.skill.toLowerCase()} difficulty`);
+      if (preferences.skill) parts.push(`${preferences.skill.toLowerCase()} difficulty`);
       parts.push(`${preferences.servings} servings`);
       if (preferences.goal) parts.push(goalMap[preferences.goal] || preferences.goal.toLowerCase());
 
@@ -735,7 +743,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
         </div>
 
         {/* Preferences Badge */}
-        {preferences && (
+        {preferences && (preferences.diets.length > 0 || preferences.skill || preferences.goal) && (
           <div className="preferences-badge">
             <span className="preferences-label">Active Preferences:</span>
             {preferences.diets.length > 0 && (
@@ -743,15 +751,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
                 🥗 {preferences.diets.join(", ")}
               </span>
             )}
-            <span className="preference-tag tag-skill">
-              👨‍🍳 {preferences.skill}
-            </span>
+            {preferences.skill && (
+              <span className="preference-tag tag-skill">
+                👨‍🍳 {preferences.skill}
+              </span>
+            )}
             <span className="preference-tag tag-servings">
               🍽️ {preferences.servings} servings
             </span>
-            <span className="preference-tag tag-goal">
-              🎯 {preferences.goal}
-            </span>
+            {preferences.goal && (
+              <span className="preference-tag tag-goal">
+                🎯 {preferences.goal}
+              </span>
+            )}
           </div>
         )}
 
