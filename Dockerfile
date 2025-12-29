@@ -43,10 +43,10 @@ COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 # Or set RUN_INGESTION=true in Railway to populate at startup
 
 # Make startup script executable
-RUN chmod +x startup.sh
+RUN chmod +x /app/startup.sh
 
 # Expose port (Railway will use PORT environment variable)
 EXPOSE 8080
 
 # Run startup script (checks for ChromaDB, runs ingestion if needed, then starts server)
-CMD ["bash", "startup.sh"]
+CMD ["/bin/bash", "/app/startup.sh"]
