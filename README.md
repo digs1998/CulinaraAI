@@ -509,13 +509,22 @@ docker-compose up --build
 ### Separate Deployments (Alternative)
 
 **Backend (Railway):**
-- Deploy `backend/` folder only
-- Port 8080 (automatic)
+1. Deploy `backend/` folder only
+2. Port 8080 (automatic)
+3. **IMPORTANT**: Create a volume at `/data` for ChromaDB persistence
+4. Set environment variables:
+   - `RUN_INGESTION=true` (for first deployment only)
+   - All API keys (GEMINI_API_KEY, etc.)
+5. After first successful ingestion, set `RUN_INGESTION=false`
 
 **Frontend (Vercel/Netlify):**
-- Deploy `frontend/` folder
-- Build command: `npm run build`
-- Set `VITE_API_URL` to your Railway backend URL
+1. Deploy `frontend/` folder
+2. Build command: `npm run build`
+3. **REQUIRED**: Set `VITE_API_URL` environment variable to your Railway backend URL
+   - Example: `https://your-app.up.railway.app`
+4. Redeploy after setting environment variable
+
+📖 **Having deployment issues?** See [DEPLOYMENT_FIX.md](DEPLOYMENT_FIX.md) for detailed troubleshooting.
 
 ---
 

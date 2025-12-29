@@ -86,12 +86,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
         },
       ]);
     } catch (err) {
+      console.error("API Error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content:
-            "⚠️ Something went wrong. Make sure the backend is running on http://localhost:8000",
+            `⚠️ Failed to connect to the backend. ${errorMessage}. Please check your connection and try again.`,
         },
       ]);
     } finally {
