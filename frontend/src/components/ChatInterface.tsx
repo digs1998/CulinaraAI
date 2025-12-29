@@ -132,531 +132,748 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
 
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden",
-        background: `
-          linear-gradient(135deg, rgba(240,253,244,0.92), rgba(187,247,208,0.92)),
-          url("/images/bell-pepper.jpg"),
-          url("/images/celery.jpg"),
-          url("/images/italian-dish.jpg")
-        `,
-        backgroundSize: "cover, 400px, 350px, cover",
-        backgroundPosition: "center, top left, bottom right, center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #22c55e, #16a34a)",
-          color: "white",
-          padding: "24px",
-          boxShadow: "0 4px 20px rgba(34,197,94,0.35)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0, fontSize: "32px" }}>🍳 CulinaraAI</h1>
-          <p style={{ marginTop: 6, opacity: 0.95, marginBottom: 0 }}>
-            Your AI Culinary Coach with Attitude 🌿
-          </p>
+    <>
+      <style>{`
+        .chat-container {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          height: 100dvh; /* Mobile viewport height */
+          overflow: hidden;
+          background: linear-gradient(135deg, rgba(240,253,244,0.92), rgba(187,247,208,0.92)),
+            url("/images/bell-pepper.jpg"),
+            url("/images/celery.jpg"),
+            url("/images/italian-dish.jpg");
+          background-size: cover, 400px, 350px, cover;
+          background-position: center, top left, bottom right, center;
+          background-repeat: no-repeat;
+        }
+
+        .chat-header {
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          padding: 16px;
+          box-shadow: 0 4px 20px rgba(34,197,94,0.35);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .header-title {
+          flex: 1;
+        }
+
+        .header-title h1 {
+          margin: 0;
+          font-size: 20px;
+        }
+
+        .header-title p {
+          margin-top: 4px;
+          opacity: 0.95;
+          margin-bottom: 0;
+          font-size: 12px;
+        }
+
+        .preferences-button {
+          background: rgba(255, 255, 255, 0.15);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 10px;
+          padding: 8px 12px;
+          color: white;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          white-space: nowrap;
+        }
+
+        .preferences-button:active {
+          transform: scale(0.95);
+        }
+
+        .preferences-badge {
+          background: rgba(255, 255, 255, 0.95);
+          border-bottom: 2px solid #bbf7d0;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          flex-shrink: 0;
+          overflow-x: auto;
+        }
+
+        .preferences-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #166534;
+          white-space: nowrap;
+        }
+
+        .preference-tag {
+          padding: 4px 10px;
+          border-radius: 16px;
+          font-size: 11px;
+          font-weight: 600;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        .tag-diet {
+          background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+          color: #166534;
+          border: 1px solid #86efac;
+        }
+
+        .tag-skill {
+          background: linear-gradient(135deg, #fef3c7, #fde68a);
+          color: #92400e;
+          border: 1px solid #fcd34d;
+        }
+
+        .tag-servings {
+          background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+          color: #1e40af;
+          border: 1px solid #93c5fd;
+        }
+
+        .tag-goal {
+          background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+          color: #9f1239;
+          border: 1px solid #f9a8d4;
+        }
+
+        .messages-container {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .messages-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .welcome-screen {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100%;
+          background-size: cover;
+          background-position: center;
+          border-radius: 16px;
+          margin: 0 -16px;
+          padding: 32px 16px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .welcome-card {
+          max-width: 900px;
+          padding: 32px 24px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.95));
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+          backdrop-filter: blur(20px);
+          border: 3px solid rgba(187, 247, 208, 0.5);
+          position: relative;
+          z-index: 1;
+        }
+
+        .welcome-icon {
+          font-size: 60px;
+          margin-bottom: 16px;
+          text-align: center;
+        }
+
+        .welcome-title {
+          font-size: 32px;
+          font-weight: 800;
+          background: linear-gradient(135deg, #16a34a, #22c55e, #4ade80);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 16px;
+          text-align: center;
+          line-height: 1.2;
+        }
+
+        .welcome-subtitle {
+          font-size: 16px;
+          line-height: 1.6;
+          color: #166534;
+          margin-bottom: 24px;
+          text-align: center;
+          font-weight: 500;
+        }
+
+        .suggestions-title {
+          text-align: center;
+          margin-bottom: 16px;
+          font-size: 13px;
+          color: #15803d;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+        }
+
+        .suggestions-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .suggestion-button {
+          padding: 16px 20px;
+          border-radius: 16px;
+          border: 2px solid #22c55e;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          font-size: 15px;
+        }
+
+        .suggestion-button:active {
+          transform: scale(0.97);
+        }
+
+        .tagline {
+          margin-top: 24px;
+          text-align: center;
+          font-size: 12px;
+          color: #16a34a;
+          font-style: italic;
+          opacity: 0.8;
+        }
+
+        .message-bubble {
+          display: flex;
+          margin-bottom: 14px;
+        }
+
+        .message-bubble.user {
+          justify-content: flex-end;
+        }
+
+        .message-bubble.assistant {
+          justify-content: flex-start;
+        }
+
+        .message-content {
+          max-width: 85%;
+          padding: 14px 16px;
+          border-radius: 16px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .message-content.user {
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          box-shadow: 0 4px 14px rgba(34,197,94,0.35);
+        }
+
+        .message-content.assistant {
+          background: rgba(255,255,255,0.96);
+          color: #1f2937;
+          max-width: 95%;
+        }
+
+        .message-text {
+          line-height: 1.5;
+          margin: 0;
+          font-family: Arial, sans-serif;
+          font-weight: bold;
+          font-size: 14px;
+        }
+
+        .facts-container {
+          margin-top: 12px;
+          margin-bottom: 12px;
+          padding: 14px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #fff7ed, #ffedd5);
+          border: 1px solid #fed7aa;
+        }
+
+        .facts-title {
+          color: #9a3412;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .facts-list {
+          margin-top: 10px;
+          padding-left: 18px;
+          margin-bottom: 0;
+        }
+
+        .fact-item {
+          font-size: 13px;
+          color: #7c2d12;
+          line-height: 1.6;
+          margin-bottom: 6px;
+        }
+
+        .recipes-container {
+          margin-top: 12px;
+        }
+
+        .loading-indicator {
+          color: #166534;
+          font-weight: 500;
+          font-size: 14px;
+          padding: 12px;
+        }
+
+        .input-container {
+          background: rgba(255,255,255,0.95);
+          padding: 12px;
+          border-top: 1px solid #bbf7d0;
+          flex-shrink: 0;
+        }
+
+        .input-wrapper {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          gap: 8px;
+        }
+
+        .chat-input {
+          flex: 1;
+          padding: 12px 18px;
+          border-radius: 24px;
+          border: 2px solid #bbf7d0;
+          font-size: 15px;
+          outline: none;
+        }
+
+        .chat-input:focus {
+          border-color: #22c55e;
+        }
+
+        .send-button {
+          padding: 12px 24px;
+          border-radius: 24px;
+          border: none;
+          background: #22c55e;
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 15px;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+
+        .send-button:active {
+          transform: scale(0.95);
+        }
+
+        .send-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Tablet */
+        @media (min-width: 640px) {
+          .chat-header {
+            padding: 20px;
+          }
+
+          .header-title h1 {
+            font-size: 28px;
+          }
+
+          .header-title p {
+            font-size: 14px;
+            margin-top: 6px;
+          }
+
+          .preferences-button {
+            padding: 10px 16px;
+            font-size: 15px;
+            border-radius: 12px;
+          }
+
+          .preferences-badge {
+            padding: 12px 20px;
+            gap: 10px;
+          }
+
+          .preferences-label {
+            font-size: 13px;
+          }
+
+          .preference-tag {
+            padding: 6px 12px;
+            font-size: 12px;
+          }
+
+          .messages-container {
+            padding: 20px;
+          }
+
+          .welcome-card {
+            padding: 48px 40px;
+            border-radius: 28px;
+          }
+
+          .welcome-icon {
+            font-size: 70px;
+            margin-bottom: 20px;
+          }
+
+          .welcome-title {
+            font-size: 38px;
+            margin-bottom: 18px;
+          }
+
+          .welcome-subtitle {
+            font-size: 18px;
+            margin-bottom: 32px;
+          }
+
+          .suggestions-title {
+            font-size: 14px;
+            margin-bottom: 20px;
+          }
+
+          .suggestions-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+          }
+
+          .suggestion-button {
+            padding: 18px 22px;
+            font-size: 16px;
+          }
+
+          .tagline {
+            margin-top: 32px;
+            font-size: 13px;
+          }
+
+          .message-content {
+            max-width: 75%;
+            padding: 16px 18px;
+            border-radius: 18px;
+          }
+
+          .message-text {
+            font-size: 15px;
+          }
+
+          .input-container {
+            padding: 16px;
+          }
+
+          .input-wrapper {
+            gap: 10px;
+          }
+
+          .chat-input {
+            padding: 14px 20px;
+            font-size: 16px;
+          }
+
+          .send-button {
+            padding: 14px 32px;
+            font-size: 16px;
+          }
+        }
+
+        /* Desktop */
+        @media (min-width: 1024px) {
+          .chat-header {
+            padding: 24px;
+          }
+
+          .header-title h1 {
+            font-size: 32px;
+          }
+
+          .preferences-badge {
+            padding: 12px 24px;
+            gap: 12px;
+          }
+
+          .preferences-label {
+            font-size: 14px;
+          }
+
+          .preference-tag {
+            padding: 6px 14px;
+            font-size: 13px;
+          }
+
+          .messages-container {
+            padding: 24px;
+          }
+
+          .welcome-card {
+            padding: 60px 50px;
+            border-radius: 32px;
+          }
+
+          .welcome-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+          }
+
+          .welcome-title {
+            font-size: 42px;
+            margin-bottom: 20px;
+          }
+
+          .welcome-subtitle {
+            font-size: 20px;
+            margin-bottom: 40px;
+          }
+
+          .suggestions-title {
+            font-size: 16px;
+            margin-bottom: 24px;
+          }
+
+          .suggestions-grid {
+            gap: 16px;
+          }
+
+          .suggestion-button {
+            padding: 20px 24px;
+            font-size: 17px;
+          }
+
+          .tagline {
+            margin-top: 40px;
+            font-size: 14px;
+          }
+
+          .message-content {
+            max-width: 70%;
+            padding: 20px;
+            border-radius: 20px;
+          }
+
+          .message-content.assistant {
+            max-width: 95%;
+          }
+
+          .message-text {
+            font-size: 16px;
+            line-height: 1.6;
+          }
+
+          .facts-container {
+            padding: 18px;
+            border-radius: 14px;
+          }
+
+          .facts-title {
+            font-size: 16px;
+          }
+
+          .facts-list {
+            padding-left: 20px;
+          }
+
+          .fact-item {
+            font-size: 14px;
+            line-height: 1.7;
+          }
+
+          .input-container {
+            padding: 18px;
+          }
+
+          .chat-input {
+            padding: 14px 22px;
+          }
+
+          .send-button {
+            padding: 14px 36px;
+          }
+        }
+      `}</style>
+
+      <div className="chat-container">
+        {/* Header */}
+        <div className="chat-header">
+          <div className="header-title">
+            <h1>🍳 CulinaraAI</h1>
+            <p>Your AI Culinary Coach with Attitude 🌿</p>
+          </div>
+
+          {/* Settings Button */}
+          {onBackToPreferences && (
+            <button
+              onClick={() => {
+                clearPreferences();
+                onBackToPreferences();
+              }}
+              className="preferences-button"
+              title="Change your dietary preferences and settings"
+            >
+              <span style={{ fontSize: "18px" }}>⚙️</span>
+              <span className="button-text">Preferences</span>
+            </button>
+          )}
         </div>
 
-        {/* Settings Button */}
-        {onBackToPreferences && (
-          <button
-            onClick={() => {
-              clearPreferences();
-              onBackToPreferences();
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)";
-              e.currentTarget.style.transform = "scale(1.05)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-            style={{
-              background: "rgba(255, 255, 255, 0.15)",
-              border: "2px solid rgba(255, 255, 255, 0.3)",
-              borderRadius: "12px",
-              padding: "12px 20px",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.2s ease",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-            }}
-            title="Change your dietary preferences and settings"
-          >
-            <span style={{ fontSize: "20px" }}>⚙️</span>
-            <span>Preferences</span>
-          </button>
-        )}
-      </div>
-
-      {/* Preferences Badge */}
-      {preferences && (
-        <div
-          style={{
-            background: "rgba(255, 255, 255, 0.95)",
-            borderBottom: "2px solid #bbf7d0",
-            padding: "12px 24px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flexWrap: "wrap",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <span style={{ fontSize: "14px", fontWeight: 600, color: "#166534" }}>
-            Active Preferences:
-          </span>
-          {preferences.diets.length > 0 && (
-            <span
-              style={{
-                background: "linear-gradient(135deg, #dcfce7, #bbf7d0)",
-                padding: "6px 14px",
-                borderRadius: "20px",
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "#166534",
-                border: "1px solid #86efac",
-              }}
-            >
-              🥗 {preferences.diets.join(", ")}
+        {/* Preferences Badge */}
+        {preferences && (
+          <div className="preferences-badge">
+            <span className="preferences-label">Active Preferences:</span>
+            {preferences.diets.length > 0 && (
+              <span className="preference-tag tag-diet">
+                🥗 {preferences.diets.join(", ")}
+              </span>
+            )}
+            <span className="preference-tag tag-skill">
+              👨‍🍳 {preferences.skill}
             </span>
-          )}
-          <span
-            style={{
-              background: "linear-gradient(135deg, #fef3c7, #fde68a)",
-              padding: "6px 14px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "#92400e",
-              border: "1px solid #fcd34d",
-            }}
-          >
-            👨‍🍳 {preferences.skill}
-          </span>
-          <span
-            style={{
-              background: "linear-gradient(135deg, #dbeafe, #bfdbfe)",
-              padding: "6px 14px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "#1e40af",
-              border: "1px solid #93c5fd",
-            }}
-          >
-            🍽️ {preferences.servings} servings
-          </span>
-          <span
-            style={{
-              background: "linear-gradient(135deg, #fce7f3, #fbcfe8)",
-              padding: "6px 14px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "#9f1239",
-              border: "1px solid #f9a8d4",
-            }}
-          >
-            🎯 {preferences.goal}
-          </span>
-        </div>
-      )}
+            <span className="preference-tag tag-servings">
+              🍽️ {preferences.servings} servings
+            </span>
+            <span className="preference-tag tag-goal">
+              🎯 {preferences.goal}
+            </span>
+          </div>
+        )}
 
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "24px",
-        }}
-      >
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          {/* Welcome Screen */}
-          {showWelcome && messages.length === 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "calc(100vh - 300px)",
-                backgroundImage: `linear-gradient(135deg, rgba(34, 197, 94, 0.85), rgba(22, 163, 74, 0.85)), url('${welcomeBackgroundImage}')`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                borderRadius: "20px",
-                margin: "0 -24px",
-                padding: "48px 24px",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              {/* Animated floating food icons */}
-              <div style={{
-                position: "absolute",
-                top: "10%",
-                left: "10%",
-                fontSize: "60px",
-                animation: "float 6s ease-in-out infinite",
-                opacity: 0.3,
-              }}>🥗</div>
-              <div style={{
-                position: "absolute",
-                top: "20%",
-                right: "15%",
-                fontSize: "50px",
-                animation: "float 8s ease-in-out infinite 1s",
-                opacity: 0.3,
-              }}>🍳</div>
-              <div style={{
-                position: "absolute",
-                bottom: "15%",
-                left: "15%",
-                fontSize: "55px",
-                animation: "float 7s ease-in-out infinite 2s",
-                opacity: 0.3,
-              }}>🥘</div>
-              <div style={{
-                position: "absolute",
-                bottom: "25%",
-                right: "10%",
-                fontSize: "45px",
-                animation: "float 9s ease-in-out infinite 1.5s",
-                opacity: 0.3,
-              }}>🌮</div>
-
+        {/* Messages */}
+        <div className="messages-container">
+          <div className="messages-inner">
+            {/* Welcome Screen */}
+            {showWelcome && messages.length === 0 && (
               <div
+                className="welcome-screen"
                 style={{
-                  maxWidth: "900px",
-                  padding: "60px 50px",
-                  borderRadius: "32px",
-                  background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.95))",
-                  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.5) inset",
-                  backdropFilter: "blur(20px)",
-                  border: "3px solid rgba(187, 247, 208, 0.5)",
-                  animation: "slideUp 0.8s ease-out",
-                  position: "relative",
-                  zIndex: 1,
+                  backgroundImage: `linear-gradient(135deg, rgba(34, 197, 94, 0.85), rgba(22, 163, 74, 0.85)), url('${welcomeBackgroundImage}')`,
                 }}
               >
-                {/* Sparkle effect */}
-                <div style={{
-                  position: "absolute",
-                  top: "20px",
-                  right: "30px",
-                  fontSize: "30px",
-                  animation: "sparkle 2s ease-in-out infinite",
-                }}>✨</div>
-                <div style={{
-                  position: "absolute",
-                  top: "40px",
-                  left: "30px",
-                  fontSize: "25px",
-                  animation: "sparkle 2s ease-in-out infinite 0.5s",
-                }}>⭐</div>
-
-                <div
-                  style={{
-                    fontSize: "80px",
-                    marginBottom: "24px",
-                    textAlign: "center",
-                    animation: "bounce 2s ease-in-out infinite",
-                  }}
-                >
-                  🍳
-                </div>
-                <h2
-                  style={{
-                    fontSize: "42px",
-                    fontWeight: 800,
-                    background: "linear-gradient(135deg, #16a34a, #22c55e, #4ade80)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                    marginBottom: "20px",
-                    textAlign: "center",
-                    lineHeight: 1.2,
-                    letterSpacing: "-0.5px",
-                  }}
-                >
-                  Welcome to CulinaraAI! 🌿
-                </h2>
-                <p
-                  style={{
-                    fontSize: "20px",
-                    lineHeight: 1.8,
-                    color: "#166534",
-                    marginBottom: "40px",
-                    textAlign: "center",
-                    fontWeight: 500,
-                  }}
-                >
-                  Your personal AI chef is here to help you discover delicious, healthy recipes tailored just for you.
-                  Let's create something amazing together!
-                </p>
-
-                {/* Quick start suggestions */}
-                <div style={{
-                  textAlign: "center",
-                  marginBottom: "30px",
-                  fontSize: "16px",
-                  color: "#15803d",
-                  fontWeight: 600,
-                  letterSpacing: "0.5px",
-                }}>
-                  🔥 POPULAR SEARCHES
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "16px",
-                    marginTop: "24px",
-                  }}
-                >
-                  {[
-                    { emoji: "🥗", text: "Healthy salad ideas", color: "#dcfce7" },
-                    { emoji: "🍝", text: "Quick pasta recipes", color: "#fef3c7" },
-                    { emoji: "🌮", text: "Vegan options", color: "#dbeafe" },
-                    { emoji: "🍰", text: "Easy desserts", color: "#fce7f3" },
-                  ].map((suggestion, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setInput(suggestion.text);
-                        setWelcomeBackgroundImage(getFoodBackgroundImage(suggestion.text));
-                      }}
-                      onMouseEnter={(e) => {
-                        setWelcomeBackgroundImage(getFoodBackgroundImage(suggestion.text));
-                        e.currentTarget.style.transform = "translateY(-4px) scale(1.02)";
-                        e.currentTarget.style.boxShadow = "0 12px 24px rgba(34, 197, 94, 0.3)";
-                      }}
-                      onMouseLeave={(e) => {
-                        setWelcomeBackgroundImage(getFoodBackgroundImage(""));
-                        e.currentTarget.style.transform = "translateY(0) scale(1)";
-                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
-                      }}
-                      style={{
-                        padding: "20px 24px",
-                        borderRadius: "20px",
-                        border: "3px solid #22c55e",
-                        background: suggestion.color,
-                        color: "#166534",
-                        fontSize: "17px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      <span style={{ fontSize: "28px" }}>{suggestion.emoji}</span>
-                      <span>{suggestion.text}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Fun tagline */}
-                <div style={{
-                  marginTop: "40px",
-                  textAlign: "center",
-                  fontSize: "14px",
-                  color: "#16a34a",
-                  fontStyle: "italic",
-                  opacity: 0.8,
-                }}>
-                  "Great cooking is about being inspired by the simple things around you" 🌱
-                </div>
-              </div>
-
-              <style>{`
-                @keyframes float {
-                  0%, 100% { transform: translateY(0px); }
-                  50% { transform: translateY(-20px); }
-                }
-                @keyframes slideUp {
-                  from {
-                    opacity: 0;
-                    transform: translateY(30px);
-                  }
-                  to {
-                    opacity: 1;
-                    transform: translateY(0);
-                  }
-                }
-                @keyframes bounce {
-                  0%, 100% { transform: translateY(0); }
-                  50% { transform: translateY(-10px); }
-                }
-                @keyframes sparkle {
-                  0%, 100% { opacity: 0.3; transform: scale(1); }
-                  50% { opacity: 1; transform: scale(1.2); }
-                }
-              `}</style>
-            </div>
-          )}
-
-          {messages.map((message, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: "flex",
-                justifyContent:
-                  message.role === "user" ? "flex-end" : "flex-start",
-                marginBottom: "18px",
-              }}
-            >
-              <div
-                style={{
-                  maxWidth: message.role === "user" ? "70%" : "95%",
-                  padding: "20px",
-                  borderRadius: "20px",
-                  background:
-                    message.role === "user"
-                      ? "linear-gradient(135deg, #22c55e, #16a34a)"
-                      : "rgba(255,255,255,0.96)",
-                  color: message.role === "user" ? "white" : "#1f2937",
-                  boxShadow:
-                    message.role === "user"
-                      ? "0 4px 14px rgba(34,197,94,0.35)"
-                      : "0 2px 12px rgba(0,0,0,0.08)",
-                }}
-              >
-                {/* Assistant text */}
-                {message.content && (
-                  <p style={{
-                    lineHeight: 1.6,
-                    marginBottom: "14px",
-                    margin: 0,
-                    fontFamily: "Arial, sans-serif",
-                    fontWeight: "bold"
-                  }}>
-                    {message.content}
+                <div className="welcome-card">
+                  <div className="welcome-icon">🍳</div>
+                  <h2 className="welcome-title">Welcome to CulinaraAI! 🌿</h2>
+                  <p className="welcome-subtitle">
+                    Your personal AI chef is here to help you discover delicious, healthy recipes tailored just for you.
+                    Let's create something amazing together!
                   </p>
-                )}
 
-                {/* DEBUG: Show if facts exist */}
-                {message.role === "assistant" && (
-                  <div style={{ display: "none" }}>
-                    Facts array: {JSON.stringify(message.facts)}
-                    Facts length: {message.facts?.length || 0}
+                  <div className="suggestions-title">🔥 POPULAR SEARCHES</div>
+                  <div className="suggestions-grid">
+                    {[
+                      { emoji: "🥗", text: "Healthy salad ideas", color: "#dcfce7" },
+                      { emoji: "🍝", text: "Quick pasta recipes", color: "#fef3c7" },
+                      { emoji: "🌮", text: "Vegan options", color: "#dbeafe" },
+                      { emoji: "🍰", text: "Easy desserts", color: "#fce7f3" },
+                    ].map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setInput(suggestion.text);
+                          setWelcomeBackgroundImage(getFoodBackgroundImage(suggestion.text));
+                        }}
+                        onMouseEnter={() => {
+                          setWelcomeBackgroundImage(getFoodBackgroundImage(suggestion.text));
+                        }}
+                        onMouseLeave={() => {
+                          setWelcomeBackgroundImage(getFoodBackgroundImage(""));
+                        }}
+                        className="suggestion-button"
+                        style={{
+                          background: suggestion.color,
+                          color: "#166534",
+                        }}
+                      >
+                        <span style={{ fontSize: "24px" }}>{suggestion.emoji}</span>
+                        <span>{suggestion.text}</span>
+                      </button>
+                    ))}
                   </div>
-                )}
 
-                {/* LLM-generated facts - Show FIRST */}
-                {message.facts && message.facts.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: "16px",
-                      marginBottom: "16px",
-                      padding: "18px",
-                      borderRadius: "14px",
-                      background:
-                        "linear-gradient(135deg, #fff7ed, #ffedd5)",
-                      border: "1px solid #fed7aa",
-                    }}
-                  >
-                    <strong style={{ color: "#9a3412", fontSize: "16px" }}>
-                      💡 Chef's Notes
-                    </strong>
-                    <ul style={{ marginTop: "12px", paddingLeft: "20px", marginBottom: 0 }}>
-                      {message.facts.map((fact, i) => (
-                        <li
-                          key={i}
-                          style={{
-                            fontSize: "14px",
-                            color: "#7c2d12",
-                            lineHeight: 1.7,
-                            marginBottom: "8px",
-                          }}
-                        >
-                          {fact}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="tagline">
+                    "Great cooking is about being inspired by the simple things around you" 🌱
                   </div>
-                )}
-
-                {/* Recipes */}
-                {message.recipes && message.recipes.length > 0 && (
-                  <div style={{ marginTop: "16px" }}>
-                    <RecipeResults recipes={message.recipes} />
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
+            )}
 
-          {isLoading && (
-            <div style={{ color: "#166534", fontWeight: 500 }}>
-              🍳 CulinaraAI is cooking something delicious…
-            </div>
-          )}
+            {messages.map((message, idx) => (
+              <div key={idx} className={`message-bubble ${message.role}`}>
+                <div className={`message-content ${message.role}`}>
+                  {/* Assistant text */}
+                  {message.content && (
+                    <p className="message-text">{message.content}</p>
+                  )}
 
-          <div ref={messagesEndRef} />
+                  {/* LLM-generated facts */}
+                  {message.facts && message.facts.length > 0 && (
+                    <div className="facts-container">
+                      <div className="facts-title">💡 Chef's Notes</div>
+                      <ul className="facts-list">
+                        {message.facts.map((fact, i) => (
+                          <li key={i} className="fact-item">{fact}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Recipes */}
+                  {message.recipes && message.recipes.length > 0 && (
+                    <div className="recipes-container">
+                      <RecipeResults recipes={message.recipes} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="loading-indicator">
+                🍳 CulinaraAI is cooking something delicious…
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input */}
+        <div className="input-container">
+          <div className="input-wrapper">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Ask me anything… 🌱"
+              className="chat-input"
+              disabled={isLoading}
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isLoading}
+              className="send-button"
+            >
+              Send 🚀
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Input */}
-      <div
-        style={{
-          background: "rgba(255,255,255,0.95)",
-          padding: "18px",
-          borderTop: "1px solid #bbf7d0",
-        }}
-      >
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex" }}>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask me anything… 🌱"
-            style={{
-              flex: 1,
-              padding: "14px 22px",
-              borderRadius: "30px",
-              border: "2px solid #bbf7d0",
-              fontSize: "16px",
-            }}
-            disabled={isLoading}
-          />
-          <button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isLoading}
-            style={{
-              marginLeft: "12px",
-              padding: "14px 36px",
-              borderRadius: "30px",
-              border: "none",
-              background: "#22c55e",
-              color: "white",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Send 🚀
-          </button>
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
