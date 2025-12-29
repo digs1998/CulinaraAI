@@ -115,8 +115,7 @@ async def startup():
 # Schemas
 # --------------------------------------------------
 class ChatRequest(BaseModel):
-    query: Optional[str] = None
-    message: Optional[str] = None
+    message: str
 
 class RecipeResult(BaseModel):
     title: str
@@ -224,12 +223,11 @@ def chat(req: ChatRequest):
     if not rag_engine or not mcp_orchestrator:
         raise HTTPException(status_code=500, detail="Engines not initialized")
 
-    query = req.query or req.message
-    if not query or not query.strip():
-        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    if not req.message or not req.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     try:
-        result = mcp_process_query(query.strip())
+        result = mcp_process_query(req.message.strip())
         
         # Ensure recipes have proper structure and valid scores
         validated_recipes = []

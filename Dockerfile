@@ -32,14 +32,21 @@ RUN apt-get update && apt-get install -y \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
+# Copy backend code (includes chroma_db if it exists)
 COPY backend/ .
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 
+# If chroma_db exists locally, it will be copied above
+# The app will use web search fallback if ChromaDB is empty
+# Or set RUN_INGESTION=true in Railway to populate at startup
+
+# Make startup script executable
+RUN chmod +x startup.sh
+
 # Expose port (Railway will use PORT environment variable)
 EXPOSE 8080
 
-# Run the FastAPI server
-CMD ["python", "main.py"]
+# Run startup script (checks for ChromaDB, runs ingestion if needed, then starts server)
+CMD ["bash", "startup.sh"]
