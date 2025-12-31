@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Onboarding } from "./components/Onboarding";
 import { ChatInterface } from "./components/ChatInterface";
 import { PreferencesProvider, UserPreferences, usePreferences } from "./contexts/PreferencesContext";
+import { Analytics } from "@vercel/analytics/react"
 
 const AppContent: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
   return (
     <PreferencesProvider>
       <AppContent />
+      <Analytics />  {/* Add this line */}
     </PreferencesProvider>
   );
 };
