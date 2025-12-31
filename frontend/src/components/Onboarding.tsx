@@ -26,8 +26,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   // Primary diets are mutually exclusive (can only pick one)
   const primaryDiets = ["Vegetarian", "Non-Vegetarian", "No Preference"];
   // Secondary dietary restrictions can be combined with primary
-  const secondaryDiets = ["Gluten Free", "Dairy Free", "Low Carb"];
-
   const toggleDiet = (diet: string) => {
     setDiets(prev => {
       // If clicking a diet that's already selected, deselect it
