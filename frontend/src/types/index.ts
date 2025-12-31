@@ -13,13 +13,19 @@ export interface ChatMessage {
   content: string;
   recipes?: any[];
   facts?: string[];
+  collection_pages?: CollectionPage[];
 }
 
+export interface CollectionPage {
+  title: string;
+  url: string;
+}
 
 export interface ChatResponse {
   response: string;
   recipes: Recipe[];
   facts?: string[];
+  collection_pages?: CollectionPage[];
 }
 
 export interface UserPreferences {

@@ -98,16 +98,16 @@ class RecipeRAGEngine:
         
         return all_terms, ingredients, methods, meal_type
     
-    def search_recipes(self, query: str, top_k: int = 5):
+    def search_recipes(self, query: str, top_k: int = 5, min_score: float = 0.35):
         """
         MCP compatibility wrapper.
-        Internally uses Chroma search with LOWER threshold.
+        Internally uses Chroma search with balanced threshold for reliable results.
         """
         return self.search_chroma(
             query=query,
             top_k=top_k,
             filters=None,
-            min_score=0.35  # LOWERED from 0.6 to 0.35 for better recall
+            min_score=min_score  # Pass through threshold parameter
         )
 
     def _check_keyword_match(self, all_terms, ingredient_terms, methods, text):
@@ -216,7 +216,7 @@ class RecipeRAGEngine:
         query: str,
         top_k: int = 5,
         filters: Optional[Dict] = None,
-        min_score: float = 0.35,  # Lowered default threshold
+        min_score: float = 0.35,  # Balanced threshold for reliable results
     ) -> List[Dict]:
         """
         Search ChromaDB with semantic similarity + keyword matching

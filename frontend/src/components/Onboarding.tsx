@@ -14,18 +14,36 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [diets, setDiets] = useState<string[]>([]);
   const [skill, setSkill] = useState<string>("Intermediate");
   const [servings, setServings] = useState(2);
-  const [goal, setGoal] = useState<string>("Balanced");
+  const [goal, setGoal] = useState<string>("Energy");
 
-  const dietOptions = ["Vegan", "Vegetarian", "Non-Vegetarian", "Keto", "Paleo", "Gluten Free", "Dairy Free", "Low Carb", "Others"];
+  // Only include options that work well with current database coverage
+  // Removed: Vegan, Keto, Paleo (insufficient recipes in database)
+  // Removed goal: Muscle Gain (no high-protein recipes in database)
+  const dietOptions = ["Vegetarian", "Non-Vegetarian", "Gluten Free", "Dairy Free", "Low Carb", "No Preference"];
   const skillOptions = ["Beginner", "Intermediate", "Advanced"];
-  const goalOptions = ["Balanced", "Weight Loss", "Muscle Gain", "Energy Boost"];
+  const goalOptions = ["Energy", "Weight Loss", "Balanced"];
+
+  // Primary diets are mutually exclusive (can only pick one)
+  const primaryDiets = ["Vegetarian", "Non-Vegetarian", "No Preference"];
+  // Secondary dietary restrictions can be combined with primary
+  const secondaryDiets = ["Gluten Free", "Dairy Free", "Low Carb"];
 
   const toggleDiet = (diet: string) => {
-    setDiets(prev =>
-      prev.includes(diet)
-        ? prev.filter(d => d !== diet)
-        : [...prev, diet]
-    );
+    setDiets(prev => {
+      // If clicking a diet that's already selected, deselect it
+      if (prev.includes(diet)) {
+        return prev.filter(d => d !== diet);
+      }
+
+      // If selecting a primary diet, remove all other primary diets first
+      if (primaryDiets.includes(diet)) {
+        const withoutPrimaryDiets = prev.filter(d => !primaryDiets.includes(d));
+        return [...withoutPrimaryDiets, diet];
+      }
+
+      // For secondary diets, just add to the list
+      return [...prev, diet];
+    });
   };
 
   return (
@@ -236,7 +254,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           cursor: pointer;
           margin-top: 8px;
           width: 100%;
-          max-width: 320px;
+          max-width: 360px;
           transition: all 0.2s;
           display: flex;
           align-items: center;
@@ -262,12 +280,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         .skip-button {
           background: transparent;
           color: rgba(255, 255, 255, 0.7);
-          padding: 12px 32px;
+          padding: 16px 48px;
           border-radius: 50px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          font-size: 15px;
+          font-size: 18px;
           font-weight: 600;
           cursor: pointer;
+          width: 100%;
+          max-width: 360px;
           transition: all 0.2s;
           display: flex;
           align-items: center;

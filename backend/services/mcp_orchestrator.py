@@ -62,13 +62,13 @@ class MCPOrchestrator:
         else:
             print("🎯 Using Gemini as primary LLM for facts generation")
 
-    def process_query(self, query: str, top_k: int = 3, similarity_threshold: float = 0.50, preferences=None) -> Dict:
+    def process_query(self, query: str, top_k: int = 10, similarity_threshold: float = 0.35, preferences=None) -> Dict:
         """
         Main MCP pipeline
 
         Args:
             query: User's search query
-            top_k: Number of results to return (default: 3 for top 3)
+            top_k: Number of results to search initially (default: 10, will be filtered to top 3)
             similarity_threshold: Minimum similarity score (lowered to 0.50 for better recall)
             preferences: Optional user preferences (diets, skill, servings, goal)
         """
@@ -82,8 +82,107 @@ class MCPOrchestrator:
             print(f"   • Goal: {preferences.goal}")
         print(f"{'='*60}\n")
 
+        # Step 1: Build search query incorporating ALL 4 preferences
+        # Strategy: Always use the user's query as the BASE, enhance with preferences
+        
+        # Expanded list of food-related terms to detect specific queries
+        specific_dishes = ['paneer', 'chicken', 'tofu', 'salmon', 'lentil', 'pasta',
+                          'beef', 'pork', 'shrimp', 'tikka', 'curry', 'biryani',
+                          'stir fry', 'salad', 'soup', 'rice', 'noodles',
+                          'lobster', 'crab', 'fish', 'tuna', 'cod', 'tilapia',
+                          'broccoli', 'spinach', 'kale', 'mushroom', 'potato',
+                          'lamb', 'duck', 'turkey', 'egg', 'prawn', 'scallop',
+                          'steak', 'burger', 'sandwich', 'wrap', 'bowl',
+                          'cake', 'cookie', 'pie', 'bread', 'muffin']
+
+        query_lower = query.lower()
+        has_specific_dish = any(dish in query_lower for dish in specific_dishes)
+        
+        # Check if query seems like a specific recipe request (has food-related words)
+        # or a generic preference-based request (like "what should I cook?")
+        generic_query_indicators = [
+            'what should i', 'recommend', 'suggest', 'what can i', 
+            'give me', 'show me', 'find me', 'what dishes',
+            'what do you recommend', 'any ideas', 'something'
+        ]
+        is_generic_query = any(indicator in query_lower for indicator in generic_query_indicators)
+        
+        # If user has a specific query (mentions food items), USE IT as the base
+        if has_specific_dish or not is_generic_query:
+            # User specified something specific - enhance with preferences but KEEP their query
+            search_parts = []
+
+            # Add skill modifier
+            if preferences and preferences.skill == 'Beginner':
+                search_parts.append('easy')
+            elif preferences and preferences.skill == 'Advanced':
+                search_parts.append('gourmet')
+
+            # Add dietary preference if it adds value
+            if preferences and preferences.diets:
+                dietary = preferences.diets[0]
+                # Only add dietary if it's specific (not generic)
+                if dietary not in ['No Preference']:
+                    # Don't add "non-vegetarian" to a query like "lobster" - it's redundant
+                    if dietary != 'Non-Vegetarian' or not has_specific_dish:
+                        search_parts.append(dietary.lower())
+
+            # Combine with original query - USER'S QUERY IS PRIMARY
+            search_query = f"{' '.join(search_parts)} {query}" if search_parts else query
+            print(f"🔍 Enhanced search query: '{search_query}'")
+
+        elif preferences and preferences.diets:
+            # Generic query like "what should I cook?" - generate based on preferences
+            # Use more varied and sensible search terms
+            dietary = preferences.diets[0]
+            skill = preferences.skill if preferences.skill else 'Intermediate'
+            goal = preferences.goal if hasattr(preferences, 'goal') and preferences.goal else None
+
+            search_parts = []
+
+            # Add skill level modifier - use more search-friendly terms
+            skill_modifiers = {
+                'Beginner': 'easy quick',
+                'Intermediate': 'homemade',
+                'Advanced': 'gourmet restaurant-style'
+            }
+            search_parts.append(skill_modifiers.get(skill, 'easy'))
+
+            # Add dietary-appropriate search terms
+            # Instead of hardcoding "chicken", use the dietary term itself for searching
+            dietary_search_terms = {
+                'Vegetarian': 'vegetarian dinner',
+                'Vegan': 'vegan meal',
+                'Non-Vegetarian': 'meat dinner',  # More generic than "chicken"
+                'Gluten Free': 'gluten free meal',
+                'Dairy Free': 'dairy free dinner',
+                'Low Carb': 'low carb keto meal',
+                'Paleo': 'paleo whole30',
+                'No Preference': 'dinner'
+            }
+            search_parts.append(dietary_search_terms.get(dietary, 'dinner recipe'))
+
+            # Add goal modifier if present
+            if goal:
+                goal_modifiers = {
+                    'Energy': 'high protein',
+                    'Weight Loss': 'healthy low calorie',
+                    'Muscle Gain': 'high protein',
+                    'General Health': 'nutritious balanced'
+                }
+                if goal in goal_modifiers:
+                    search_parts.insert(0, goal_modifiers[goal])
+
+            search_query = ' '.join(search_parts)
+            print(f"🔍 Generated preference-based query: '{search_query}'")
+
+        else:
+            # No preferences - use original query
+            search_query = query
+            print(f"🔍 Database search query: '{search_query}'")
+
         # Step 1: RAG DB - try to find in database first
-        rag_result = self._process_rag_pipeline(query, top_k, similarity_threshold, preferences)
+        rag_result = self._process_rag_pipeline(search_query, top_k, similarity_threshold, preferences)
 
         # Step 2: Web fallback if no DB results
         web_result = None
@@ -102,13 +201,39 @@ class MCPOrchestrator:
         """Query RAG DB → summarize with LLM"""
         print("📚 RAG DB Pipeline:")
         print("  → Searching local database...")
-
-        rag_results = self.rag_engine.search_recipes(query, top_k=top_k)
+        
+        # Detect if user asked for a SPECIFIC protein/main ingredient FIRST
+        # This is critical - if user says "lamb curry", they want LAMB, not prawn!
+        import re
+        query_lower = query.lower()
+        
+        # List of main proteins/ingredients that users might specifically request
+        specific_proteins = ['lamb', 'beef', 'chicken', 'pork', 'fish', 'salmon', 'tuna', 
+                            'shrimp', 'prawn', 'lobster', 'crab', 'turkey', 'duck',
+                            'tofu', 'paneer', 'tempeh', 'seitan']
+        
+        # Find which specific protein the user asked for
+        requested_protein = None
+        for protein in specific_proteins:
+            if protein in query_lower:
+                requested_protein = protein
+                print(f"  🎯 User specifically requested: {protein.upper()}")
+                break
+        
+        # If user requested a specific protein, get MORE candidates with LOWER threshold
+        # This allows us to find recipes that match the protein even if semantic similarity is lower
+        if requested_protein:
+            # Get more candidates with much lower threshold - we'll filter after boosting
+            rag_results = self.rag_engine.search_recipes(query, top_k=top_k * 5, min_score=0.10)
+            print(f"  📊 Expanded search for '{requested_protein}': got {len(rag_results)} candidates")
+        else:
+            rag_results = self.rag_engine.search_recipes(query, top_k=top_k)
 
         rag_summary = None
         rag_facts = []
         rag_has_results = False
         filtered_results = []
+        collection_pages = []  # Track collection pages to extract from
 
         if rag_results and len(rag_results) > 0:
             # Check if we have any results above threshold OR with keyword matches
@@ -116,10 +241,41 @@ class MCPOrchestrator:
             for result in rag_results:
                 score = result.get('score', 0.0)
                 has_keyword = result.get('keyword_match', False)
+                title = result.get('metadata', {}).get('title', '')
+
+                # Detect collection pages - DON'T filter them out, scrape them for individual recipes!
+                import re
+
+                # Check if title has number + recipes/snacks/dishes (e.g., "56 vegan snacks")
+                has_number_list = bool(re.search(r'\d+\s+(vegan|vegetarian|paleo|keto)?\s*(snacks|recipes|dishes)', title.lower()))
+
+                # Check if title ends with " recipes" (e.g., "Easy vegetarian recipes", "Dinner recipes")
+                # But NOT single-dish recipes like "Chicken curry recipe"
+                title_lower = title.lower()
+                ends_with_recipes = title_lower.endswith(' recipes') or title_lower.endswith('recipes |')
+
+                collection_keywords = ['best', 'top', 'ideas', 'collection',
+                                      'easy recipes', 'batch cooking recipes', 'dinner recipes',
+                                      'lunch recipes', 'breakfast recipes', 'snack recipes']
+
+                is_collection = any(keyword in title_lower for keyword in collection_keywords) or has_number_list or ends_with_recipes
+
+                if is_collection:
+                    # Collection page found - we'll scrape it for individual recipes
+                    print(f"  📚 Collection page found: {title[:60]}")
+                    collection_url = result.get('metadata', {}).get('url', '')
+                    if collection_url:
+                        print(f"     URL: {collection_url[:70]}")
+                        collection_pages.append({
+                            'title': title,
+                            'url': collection_url,
+                            'from_database': True
+                        })
+                    continue
 
                 # Apply dietary preference filtering
                 if preferences and preferences.diets:
-                    recipe_title = result.get('metadata', {}).get('title', '').lower()
+                    recipe_title = title.lower()
                     recipe_ingredients = ' '.join(result.get('metadata', {}).get('ingredients', [])).lower()
 
                     # Check if recipe matches dietary preferences
@@ -130,25 +286,125 @@ class MCPOrchestrator:
                     )
 
                     if not dietary_match:
-                        print(f"  ⚬ Filtered (diet): {result.get('metadata', {}).get('title', 'Recipe')[:50]} (not {', '.join(preferences.diets).lower()})")
+                        print(f"  ⚬ Filtered (diet): {title[:50]} (not {', '.join(preferences.diets).lower()})")
                         continue
 
-                # Accept if: (high score) OR (decent score + keyword match) OR (keyword match with okay score)
-                if score >= similarity_threshold or (score >= 0.40 and has_keyword) or (has_keyword and score >= 0.35):
+                # Apply servings filtering (if specified)
+                if preferences and preferences.servings:
+                    recipe_metadata = result.get('metadata', {})
+                    recipe_servings_text = str(recipe_metadata.get('facts', {}).get('servings', ''))
+                    recipe_title_lower = title.lower()
+
+                    # Check if recipe is for the requested servings
+                    # Look for servings in metadata or title (e.g., "for two", "serves 2")
+                    if preferences.servings == 2:
+                        # Looking for 2 servings
+                        matches_servings = (
+                            'for two' in recipe_title_lower or
+                            'for 2' in recipe_title_lower or
+                            '2' in recipe_servings_text or
+                            'two' in recipe_servings_text
+                        )
+                        # Boost score if it matches servings perfectly
+                        if matches_servings:
+                            score = min(1.0, score + 0.05)  # 5% boost for matching servings
+                    elif preferences.servings == 4:
+                        matches_servings = (
+                            '4' in recipe_servings_text or
+                            'four' in recipe_servings_text or
+                            '3-4' in recipe_servings_text or
+                            '4-6' in recipe_servings_text
+                        )
+                        if matches_servings:
+                            score = min(1.0, score + 0.05)
+
+                # Apply skill level boost (don't filter, just boost scores)
+                if preferences and preferences.skill:
+                    recipe_title_lower = title.lower()
+                    recipe_instructions = result.get('metadata', {}).get('instructions', [])
+                    num_steps = len(recipe_instructions) if isinstance(recipe_instructions, list) else 0
+
+                    if preferences.skill == 'Beginner':
+                        # Boost easy/quick/simple recipes
+                        if any(word in recipe_title_lower for word in ['easy', 'simple', 'quick', 'minute']):
+                            score = min(1.0, score + 0.03)
+                        # Boost recipes with fewer steps
+                        if num_steps > 0 and num_steps <= 5:
+                            score = min(1.0, score + 0.02)
+                    elif preferences.skill == 'Advanced':
+                        # Boost complex recipes
+                        if any(word in recipe_title_lower for word in ['gourmet', 'classic', 'traditional']):
+                            score = min(1.0, score + 0.03)
+                        # Boost recipes with more steps
+                        if num_steps > 8:
+                            score = min(1.0, score + 0.02)
+
+                # CRITICAL: Apply MAJOR boost for recipes matching user's specific protein request
+                # If user asked for "lamb curry", a lamb recipe should rank much higher than prawn!
+                if requested_protein:
+                    recipe_title_lower = title.lower()
+                    recipe_ingredients = ' '.join(result.get('metadata', {}).get('ingredients', [])).lower()
+                    
+                    # Check if recipe contains the requested protein
+                    protein_in_title = requested_protein in recipe_title_lower
+                    protein_in_ingredients = requested_protein in recipe_ingredients
+                    
+                    if protein_in_title:
+                        # Major boost if protein is in title (most relevant)
+                        score = min(1.0, score + 0.30)
+                        print(f"    🎯 +30% boost: '{title[:40]}' has {requested_protein} in title")
+                    elif protein_in_ingredients:
+                        # Moderate boost if protein is in ingredients
+                        score = min(1.0, score + 0.15)
+                        print(f"    🎯 +15% boost: '{title[:40]}' has {requested_protein} in ingredients")
+
+                # Update the score in the result after all boosts
+                result['score'] = score
+
+                # Accept only if score meets high threshold for reliable results
+                if score >= similarity_threshold:
                     valid_results.append(result)
                     print(f"  ✓ Accepted: {result.get('metadata', {}).get('title', 'Recipe')[:50]} (score: {score:.3f}, keyword: {has_keyword})")
                 else:
                     print(f"  ✗ Rejected: {result.get('metadata', {}).get('title', 'Recipe')[:50]} (score: {score:.3f}, keyword: {has_keyword})")
 
+            # Re-sort valid_results by score after all boosts have been applied
             if valid_results:
-                rag_has_results = True
-                filtered_results = valid_results
-                print(f"\n  ✓ Found {len(valid_results)} relevant recipes in database")
+                valid_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+                
+            if valid_results:
+                # If user requested a specific protein, check if ANY result contains it
+                # If not, we should fall back to web search
+                found_requested_protein = False
+                if requested_protein:
+                    for result in valid_results:
+                        result_title = result.get('metadata', {}).get('title', '').lower()
+                        result_ingredients = ' '.join(result.get('metadata', {}).get('ingredients', [])).lower()
+                        if requested_protein in result_title or requested_protein in result_ingredients:
+                            found_requested_protein = True
+                            break
+                    
+                    if not found_requested_protein:
+                        print(f"\n  ⚠️ No recipes found with {requested_protein.upper()} - will try web search")
+                        rag_has_results = False
+                        filtered_results = []
+                    else:
+                        rag_has_results = True
+                        # Limit to exactly 3 recipes
+                        filtered_results = valid_results[:3]
+                        print(f"\n  ✓ Found {len(valid_results)} relevant recipes (including {requested_protein}), limited to {len(filtered_results)}")
+                else:
+                    rag_has_results = True
+                    # Limit to exactly 3 recipes
+                    filtered_results = valid_results[:3]
+                    print(f"\n  ✓ Found {len(valid_results)} relevant recipes, limited to {len(filtered_results)}")
 
-                recipe_ids = [r['id'] for r in valid_results]
+                # Skip AI summary - just return recipes directly
+                rag_summary = ""  # No AI text, just show recipe cards
+
+                recipe_ids = [r['id'] for r in filtered_results]
                 recipe_context = self.rag_engine.get_recipe_context(recipe_ids, detailed=True)
-                print("  → Summarizing with Gemini LLM...")
-                rag_summary = self._summarize_with_llm(recipe_context, query, source="local database")
+
                 print("  → Generating culinary facts...")
                 try:
                     rag_facts = self._generate_facts(recipe_context, query)
@@ -156,11 +412,17 @@ class MCPOrchestrator:
                 except Exception as e:
                     print(f"  ⚠️ Failed to generate facts: {e}")
                     rag_facts = []
-                print("  ✓ RAG DB summary complete")
+                print("  ✓ RAG DB processing complete")
             else:
                 print(f"  ⚠️ No results met criteria (threshold: {similarity_threshold})")
         else:
             print("  ⚠️ No results found in local database")
+
+        # If we only found collection pages in database, mark as no results to trigger web search
+        if collection_pages and not filtered_results:
+            print(f"\n  → Found {len(collection_pages)} collection pages in database (not individual recipes)")
+            print(f"  → Database has no individual recipes - will fall back to web search")
+            rag_has_results = False
 
         return {
             "has_results": rag_has_results,
@@ -177,7 +439,8 @@ class MCPOrchestrator:
                                  'meat', 'egg', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'honey',
                                  'whey', 'gelatin', 'lard']
         non_vegetarian_ingredients = ['chicken', 'beef', 'pork', 'fish', 'lamb', 'turkey', 'bacon',
-                                      'sausage', 'meat', 'seafood', 'prawn', 'shrimp']
+                                      'sausage', 'meat', 'seafood', 'prawn', 'shrimp', 'salmon', 'tuna',
+                                      'duck', 'venison', 'steak', 'meatball', 'ham']
 
         # Check each dietary preference
         for diet in diet_preferences:
@@ -194,6 +457,13 @@ class MCPOrchestrator:
                 for ingredient in non_vegetarian_ingredients:
                     if ingredient in ingredients or ingredient in title:
                         return False
+
+            elif diet_lower == 'non-vegetarian' or diet_lower == 'non vegetarian':
+                # For non-vegetarian, recipe MUST contain meat/fish
+                has_meat = any(ingredient in ingredients.lower() or ingredient in title.lower()
+                              for ingredient in non_vegetarian_ingredients)
+                if not has_meat:
+                    return False  # Reject if no meat found
 
             elif diet_lower in ['keto', 'low carb']:
                 # Keto/low carb - avoid high-carb ingredients
@@ -218,25 +488,116 @@ class MCPOrchestrator:
                     if 'dairy free' not in title and 'dairy-free' not in ingredients:
                         return False
 
+            elif diet_lower == 'paleo':
+                # Paleo - avoid grains, legumes, dairy, refined sugar
+                non_paleo = ['grain', 'rice', 'wheat', 'pasta', 'bread', 'oat', 'bean', 'lentil',
+                            'peanut', 'soy', 'tofu', 'dairy', 'milk', 'cheese', 'sugar', 'corn']
+                # Allow if explicitly says paleo
+                has_non_paleo = any(item in ingredients.lower() or item in title.lower() for item in non_paleo)
+                if has_non_paleo and 'paleo' not in title.lower():
+                    return False
+
         return True
+
+    def _is_valid_recipe(self, recipe: Dict) -> bool:
+        """
+        Validate that a scraped result is actually a recipe with real food content.
+        Filters out navigation pages, news articles, and other non-recipe content.
+        """
+        title = recipe.get('title', '').lower()
+        ingredients = recipe.get('ingredients', [])
+
+        # Check for non-recipe indicators in title
+        invalid_titles = ['news', 'trends', 'subscribe', 'newsletter', 'sign up',
+                         'download', 'app', 'contact', 'about', 'privacy']
+        if any(invalid in title for invalid in invalid_titles):
+            return False
+
+        # Must have ingredients
+        if not ingredients or len(ingredients) == 0:
+            return False
+
+        # Check if ingredients look like real food
+        # Non-food "ingredients" that indicate this isn't a recipe
+        non_food_terms = ['subscribe', 'newsletter', 'sign up', 'download', 'app',
+                         'social', 'follow', 'facebook', 'instagram', 'twitter',
+                         'email', 'contact', 'privacy', 'terms', 'policy',
+                         'advertisement', 'sponsored', 'affiliate']
+
+        ingredients_text = ' '.join(ingredients).lower()
+
+        # If more than 30% of ingredients contain non-food terms, reject
+        non_food_count = sum(1 for term in non_food_terms if term in ingredients_text)
+        if non_food_count > len(ingredients) * 0.3:
+            return False
+
+        # Check for at least some real food ingredients
+        real_food_indicators = ['chicken', 'beef', 'pork', 'fish', 'rice', 'pasta',
+                               'tomato', 'onion', 'garlic', 'salt', 'pepper', 'oil',
+                               'flour', 'sugar', 'butter', 'milk', 'egg', 'cheese',
+                               'vegetable', 'fruit', 'herb', 'spice', 'water',
+                               'paneer', 'tofu', 'lentil', 'bean', 'chickpea',
+                               'potato', 'carrot', 'broccoli', 'spinach', 'kale',
+                               'quinoa', 'oat', 'almond', 'cashew', 'coconut']
+
+        has_real_food = any(food in ingredients_text for food in real_food_indicators)
+
+        return has_real_food
 
     def _process_web_pipeline(self, query: str, preferences=None) -> Dict:
         """Query web → scrape URLs via MCP → summarize with LLM"""
         print("\n🌐 Web Search Pipeline:")
         print("  → Searching internet...")
 
-        # Enhance query with dietary preferences if available
-        search_query = query
-        if preferences and preferences.diets:
-            diet_keywords = ' '.join(preferences.diets).lower()
-            search_query = f"{query} {diet_keywords}"
-            print(f"  → Enhanced query with diets: '{search_query}'")
+        # Build search query: ALWAYS include user's query, enhance with preferences
+        query_lower = query.lower()
+        
+        # Check if query already has "recipe" in it
+        has_recipe_word = 'recipe' in query_lower
+        
+        # Check if user's query mentions specific foods (not just generic preference requests)
+        specific_food_terms = ['lobster', 'chicken', 'salmon', 'beef', 'pork', 'lamb', 'fish',
+                               'shrimp', 'crab', 'tofu', 'paneer', 'broccoli', 'pasta', 'rice',
+                               'curry', 'soup', 'salad', 'steak', 'burger', 'cake', 'bread']
+        has_specific_food = any(term in query_lower for term in specific_food_terms)
+        
+        # Generic queries that indicate user wants preferences-based suggestions
+        generic_indicators = ['what should', 'recommend', 'suggest', 'what can', 'any ideas', 'what dishes']
+        is_generic_query = any(indicator in query_lower for indicator in generic_indicators)
+        
+        if has_specific_food or not is_generic_query:
+            # User has a specific query - USE IT, optionally enhance with preferences
+            if has_recipe_word:
+                search_query = query
+            else:
+                search_query = f"{query} recipe"
+            
+            # Add dietary modifier only if it adds value and isn't redundant
+            if preferences and preferences.diets and preferences.diets[0] not in ['No Preference']:
+                dietary = preferences.diets[0].lower()
+                # Don't add "non-vegetarian" to queries with specific meats - redundant
+                if dietary == 'non-vegetarian' and has_specific_food:
+                    pass  # Skip, it's redundant
+                elif dietary not in search_query.lower():
+                    search_query = f"{dietary} {search_query}"
+            
+            print(f"  → Searching for: '{search_query}'")
+        else:
+            # Generic query - generate based on preferences
+            if preferences and preferences.diets and preferences.diets[0] not in ['No Preference']:
+                primary_diet = preferences.diets[0].lower()
+                search_query = f'{primary_diet} recipe'
+            else:
+                search_query = f"{query} recipe"
+            print(f"  → Searching for: '{search_query}'")
 
         web_search_result = self.mcp_tools.search_recipe_web(query=search_query, max_results=5)
 
         web_summary = None
         web_facts = []
         web_has_results = False
+        collection_pages = []
+        actual_recipes = []
 
         if web_search_result.get("success") and web_search_result.get("results"):
             web_has_results = True
@@ -260,20 +621,209 @@ class MCPOrchestrator:
                         print(f"    ✗ Error: {str(e)[:80]}")
 
             if scraped_recipes:
-                # Prepare context for LLM
-                web_context = self._format_web_context(results, scraped_recipes)
+                # Check for obvious collection indicators (MORE COMPREHENSIVE)
+                # Note: These are checked against LOWERCASE title
+                collection_keywords = [
+                    'best', 'top', 'ideas', 'collection', 'recipes |',
+                    'non-vegetarian recipes', 'vegetarian recipes', 'vegan recipes',
+                    'non veg recipes', 'veg recipes', 'easy recipes',
+                    '10 best', '14 best', '9 best', '20 best', '40+', '672',  # Number patterns
+                    'dinner recipes', 'lunch recipes', 'breakfast recipes',
+                    'keto recipes', 'paleo recipes', 'low carb recipes', 'low-carb recipes',
+                    'gluten free recipes', 'gluten-free recipes', 'dairy free recipes', 'dairy-free recipes',
+                    'free paleo', 'favorite paleo', 'healthy vegan',
+                    'mouthwatering', 'crave-worthy', 'add to your', 'weekly menu',
+                    # Generic collection endings
+                    'recipes for', 'recipe ideas', 'meal ideas', 'dinner ideas',
+                    # Catch standalone "X Recipes" patterns
+                    'healthy recipes', 'quick recipes', 'simple recipes',
+                    # Very short generic titles that are likely categories, not dishes
+                    'paneer recipes', 'chicken recipes', 'beef recipes', 'fish recipes',
+                    'pasta recipes', 'salad recipes', 'soup recipes', 'curry recipes',
+                ]
+                collection_page_urls = []
 
-                # Summarize with Gemini
-                print(f"\n  → Summarizing {len(scraped_recipes)} recipes with Gemini LLM...")
-                web_summary = self._summarize_with_llm(web_context, query, source="internet")
-                print("  → Generating culinary facts...")
-                try:
-                    web_facts = self._generate_facts(web_context, query)
-                    print(f"  ✓ Generated {len(web_facts)} facts")
-                except Exception as e:
-                    print(f"  ⚠️ Failed to generate facts: {e}")
-                    web_facts = []
-                print("  ✓ Web search summary complete")
+                for recipe in scraped_recipes:
+                    title = recipe.get('title', '').lower().strip()
+                    
+                    # Skip very short titles - likely category names, not dish names
+                    # e.g., "Non-Veg", "Paneer", "Recipes"
+                    if len(title) < 10:
+                        collection_url = recipe.get('source', '')
+                        collection_page_urls.append(collection_url)
+                        collection_pages.append({
+                            'title': recipe.get('title', 'Recipe Collection'),
+                            'url': collection_url
+                        })
+                        print(f"    📚 Too short, likely category: {recipe.get('title', 'Recipe')[:60]}")
+                        continue
+
+                    # Check for collection keywords OR number patterns (e.g., "14 Best...")
+                    is_collection = any(keyword in title for keyword in collection_keywords)
+                    
+                    # Check if title ends with "Recipes" (plural) - strong collection indicator
+                    # e.g., "Low-Carb Recipes", "Gluten-Free Recipes", "Vegan Recipes"
+                    # BUT NOT "Paneer Curry Recipe" (singular) - that's a real dish!
+                    import re
+                    if re.search(r'\brecipes\s*$', title):  # Ends with "recipes" (PLURAL)
+                        is_collection = True
+                    
+                    # Check for "X-Y Recipes" pattern like "Low-Carb Recipes", "Gluten-Free Recipes"
+                    # BUT NOT "X-Y Recipe" (singular)
+                    if re.search(r'\w+-\w+\s+recipes\b', title):  # Must be plural "recipes"
+                        is_collection = True
+
+                    # Also check if title has number patterns (strong indicator of listicle)
+                    # Patterns: "672 Low Carb", "41 Keto", "40+ of Our", "100 Mouthwatering"
+                    if re.search(r'\d+[\+]?\s+(low carb|keto|paleo|vegan|recipes?|of our|favorite|healthy|easy|best|paneer|chicken)', title):
+                        is_collection = True
+                    # Pattern: Starts with number (like "21 Easy Paneer Recipes", "35+ Indian Recipes")
+                    if re.match(r'^\d+[\+]?\s+', title):
+                        is_collection = True
+                    
+                    # Pattern: Title contains colon followed by list indicators
+                    # e.g., "Gluten-Free Recipes: Cakes, Cookies, Bread & More"
+                    if ':' in title and any(word in title for word in ['&', 'and more', 'more']):
+                        is_collection = True
+
+                    if not is_collection:
+                        actual_recipes.append(recipe)
+                        print(f"    ✅ {recipe.get('title', 'Recipe')[:60]}")
+                    else:
+                        # This is a collection page - save URL to extract recipes from it
+                        collection_url = recipe.get('source', '')
+                        collection_page_urls.append(collection_url)
+                        collection_pages.append({
+                            'title': recipe.get('title', 'Recipe Collection'),
+                            'url': collection_url
+                        })
+                        print(f"    📚 Collection page found: {recipe.get('title', 'Recipe')[:60]}")
+
+                # ALWAYS extract from collection pages if we found them, even if we have some recipes
+                # This ensures we get actual dish recipes instead of collection page titles
+                if collection_page_urls:
+                    print(f"\n  → Found {len(collection_page_urls)} collection pages")
+                    print(f"  → Current actual_recipes: {len(actual_recipes)}")
+                    print(f"  → Extracting individual recipes from collection pages...")
+
+                    from services.recipe_scraper_pipeline import scrape_recipes_from_collection
+                    
+                    def is_collection_title(title: str) -> bool:
+                        """Check if a title indicates a collection/listicle rather than a single dish"""
+                        import re
+                        title_lower = title.lower().strip()
+                        
+                        # Very short titles are likely categories, not dishes
+                        if len(title_lower) < 10:
+                            return True
+                        
+                        # Direct keyword match
+                        if any(kw in title_lower for kw in collection_keywords):
+                            return True
+                        
+                        # Ends with "Recipes" (PLURAL) - collection indicator
+                        # BUT NOT "Recipe" (singular) - that's a real dish!
+                        if re.search(r'\brecipes\s*$', title_lower):
+                            return True
+                        
+                        # "X-Y Recipes" pattern like "Low-Carb Recipes", "Gluten-Free Recipes"
+                        # BUT NOT "X-Y Recipe" (singular)
+                        if re.search(r'\w+-\w+\s+recipes\b', title_lower):
+                            return True
+                        
+                        # Starts with a number (like "21 Easy Paneer Recipes")
+                        if re.match(r'^\d+[\+]?\s+', title_lower):
+                            return True
+                        
+                        # Contains colon followed by list indicators
+                        if ':' in title_lower and any(word in title_lower for word in ['&', 'and more', 'more']):
+                            return True
+                        
+                        return False
+
+                    for col_url in collection_page_urls[:2]:  # Check first 2 collection pages
+                        print(f"\n  📚 Extracting from collection: {col_url[:70]}...")
+
+                        try:
+                            # Use scrape_recipes_from_collection which handles both:
+                            # 1. Rich ItemList (recipes embedded in JSON-LD) 
+                            # 2. Multi-page collections (separate URLs to scrape)
+                            collection_result = scrape_recipes_from_collection(col_url, max_recipes=5)
+                            
+                            extracted_recipes = collection_result.get('recipes', [])
+                            collection_type = collection_result.get('type', 'unknown')
+                            
+                            if extracted_recipes:
+                                print(f"    ✓ Got {len(extracted_recipes)} recipes from collection (type: {collection_type})")
+
+                                # Process each extracted recipe
+                                for individual_recipe in extracted_recipes[:3]:  # Get top 3 recipes
+                                    try:
+                                        recipe_title = individual_recipe.get('title', 'Recipe')
+                                        
+                                        if individual_recipe and recipe_title != "Could not fetch recipe":
+                                            # Verify it's not another collection page using comprehensive check
+                                            if not is_collection_title(recipe_title):
+                                                # For rich-itemlist type, recipes may not have ingredients
+                                                # Still add them if they have title and description
+                                                if collection_type == 'rich-itemlist':
+                                                    # Rich ItemList recipes have title, description, image but no ingredients
+                                                    if individual_recipe.get('title') and individual_recipe.get('description'):
+                                                        actual_recipes.append(individual_recipe)
+                                                        print(f"      ✅ {recipe_title[:50]}")
+                                                        
+                                                        if len(actual_recipes) >= 3:
+                                                            break
+                                                    else:
+                                                        print(f"      ⚬ Skipped (no description): {recipe_title[:40]}")
+                                                else:
+                                                    # Multi-page recipes should have ingredients
+                                                    if self._is_valid_recipe(individual_recipe):
+                                                        actual_recipes.append(individual_recipe)
+                                                        print(f"      ✅ {recipe_title[:50]}")
+
+                                                        if len(actual_recipes) >= 3:
+                                                            break
+                                                    else:
+                                                        print(f"      ⚬ Skipped (invalid/non-recipe content): {recipe_title[:40]}")
+                                            else:
+                                                print(f"      ⚬ Skipped (another collection): {recipe_title[:40]}")
+                                    except Exception as e:
+                                        print(f"      ✗ Failed processing recipe: {str(e)[:60]}")
+
+                                if len(actual_recipes) >= 3:
+                                    print(f"    ✓ Successfully extracted {len(actual_recipes)} recipes from collection page")
+                                    break
+                            else:
+                                print(f"    ⚠️ No recipes found in collection page")
+
+                        except Exception as e:
+                            print(f"    ✗ Error extracting from collection: {str(e)[:60]}")
+
+                if not actual_recipes:
+                    print(f"  ⚠️ All scraped pages were collections/listicles, no individual recipes found")
+                    web_has_results = False
+                    web_summary = "I found some recipe collections online, but couldn't extract specific dish recipes. Try being more specific (e.g., 'chicken tikka recipe' instead of 'non-vegetarian recipes')."
+                    collection_pages = []  # Clear collection pages so frontend doesn't show them
+                else:
+                    # Limit to exactly 3 recipes for the recommendation
+                    actual_recipes = actual_recipes[:3]
+                    print(f"  → Limited to {len(actual_recipes)} recipes for recommendation")
+
+                    # Skip AI summary - just return empty string so recipes are shown directly
+                    web_summary = ""  # No AI text, recipes will be displayed as cards
+
+                    # Prepare context for facts generation
+                    web_context = self._format_web_context(results, actual_recipes)
+
+                    print("  → Generating culinary facts...")
+                    try:
+                        web_facts = self._generate_facts(web_context, query)
+                        print(f"  ✓ Generated {len(web_facts)} facts")
+                    except Exception as e:
+                        print(f"  ⚠️ Failed to generate facts: {e}")
+                        web_facts = []
+                    print("  ✓ Web search complete")
             else:
                 web_has_results = False
                 print("  ⚠️ No recipes could be scraped successfully")
@@ -286,7 +836,9 @@ class MCPOrchestrator:
             "search_result": web_search_result,
             "summary": web_summary,
             "facts": web_facts,
-            "source": "Internet"
+            "source": "Internet",
+            "collection_pages": collection_pages,
+            "recipes": actual_recipes  # Return the filtered, scraped recipes
         }
 
     def _format_web_context(self, search_results: List[Dict], scraped_recipes: List[Dict]) -> str:
@@ -331,19 +883,28 @@ class MCPOrchestrator:
         """Summarize recipe context using Groq or Gemini LLM"""
         prompt = f"""A user asked: "{query}"
 
-        I found recipe information in my {source}. Please provide a helpful, conversational summary:
+        I found recipe information in my {source}. Please provide a personalized recommendation for EXACTLY 3 DISHES:
 
         {context}
 
-        Instructions:
-        - Start with a brief, friendly intro (1-2 sentences)
-        - Mention how many recipes were found
-        - Highlight key features (e.g., "quick and easy", "under 30 minutes", "beginner-friendly")
-        - Include 1-2 specific recipe names if available
-        - Keep it concise (3-4 sentences total)
-        - End by encouraging the user to check the detailed recipes below
+        CRITICAL INSTRUCTIONS:
+        - Act as a friendly AI chef giving personalized recommendations
+        - Recommend EXACTLY 3 SPECIFIC DISH NAMES from the recipes found
+        - ONLY mention actual dish names (e.g., "Grilled Chicken Tikka", "Palak Paneer", "Chickpea Curry")
+        - DO NOT mention collection pages or listicle titles (DON'T say "9 best recipes")
+        - Briefly explain WHY these 3 dishes match their preferences (diet, skill level, goal)
+        - Format: "Based on your preferences, I recommend: [Dish 1], [Dish 2], and [Dish 3]. [Brief reason]."
+        - Maximum 3 sentences total
 
-        Example tone: "I found 3 delicious paneer recipes for you! These include quick options like Garlic Paneer and Paneer Tikka that take under 30 minutes. All recipes include detailed ingredients and step-by-step instructions below."
+        BAD examples (DON'T DO THIS):
+        ❌ "I found 3 delicious paneer recipes for you!"
+        ❌ "Check out these 9 best non vegetarian recipes"
+        ❌ "Here are some vegan options"
+
+        GOOD examples (DO THIS):
+        ✅ "Based on your preferences, I recommend: Palak Paneer, Paneer Butter Masala, and Garlic Paneer. All three are vegetarian, beginner-friendly, and packed with protein!"
+        ✅ "I suggest: Chickpea Buddha Bowl, Mediterranean Quinoa Salad, and Lentil Curry. These vegan dishes are quick to make and perfect for weight loss!"
+        ✅ "Try: Grilled Chicken Tikka, Butter Chicken, and Tandoori Chicken. All are easy to prepare and high in protein for muscle gain!"
         """
 
         # Try Groq first (fast and reliable)
@@ -488,5 +1049,6 @@ Return ONLY the single fact, nothing else. No numbering, no introduction, no con
             "recipes": primary_recipes,
             "facts": primary_facts,
             "has_database_results": rag_result["has_results"],
-            "has_web_results": web_result["has_results"] if web_result else False
+            "has_web_results": web_result["has_results"] if web_result else False,
+            "collection_pages": web_result.get("collection_pages", []) if web_result else []
         }

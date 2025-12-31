@@ -112,11 +112,36 @@ class RecipeScraper:
             if parsed.netloc not in self.allowed_domains:
                 continue
 
-            # More aggressive link matching
             path_lower = parsed.path.lower()
+
+            # CRITICAL: Reject collection pages
+            # Collection pages contain lists of recipes, not actual recipe content
+            collection_indicators = [
+                '/collection/', '/collections/',
+                '/roundup/', '/roundups/',
+                '/ideas/', '/browse/',
+                '-recipes/', '-dishes/'  # URLs ending with these before file extension
+            ]
+
+            # Check if URL contains collection indicators
+            if any(indicator in path_lower for indicator in collection_indicators):
+                continue
+
+            # Also check path parts for collection keywords
+            path_parts = [p for p in parsed.path.split('/') if p]
+            if any(part in ['collection', 'collections', 'roundup', 'roundups', 'ideas', 'browse']
+                   for part in path_parts):
+                continue
+
+            # Reject if path part ends with '-recipes' or '-dishes'
+            if any(part.endswith(('-recipes', '-dishes', '-recipe', '-dish'))
+                   for part in path_parts):
+                continue
+
+            # Only accept URLs with individual recipe indicators
             if any(keyword in path_lower for keyword in [
-                "/recipe", "/dish", "/meal", "/food", 
-                "/cook", "/kitchen", "/cuisine"
+                "/recipe/", "/recipes/",  # Note the trailing slash - more specific
+                "/dish/", "/meal/",
             ]):
                 links.add(full_url)
 
@@ -151,7 +176,36 @@ class RecipeScraper:
                     )
 
                 if data and data.get("@type") == "Recipe":
-                    recipe["title"] = data.get("name")
+                    title = data.get("name")
+
+                    # CRITICAL: Validate this is an actual recipe, not a collection page
+                    # Collection pages often have titles like "Easy vegetarian recipes"
+                    if title:
+                        title_lower = title.lower()
+
+                        # Reject if title ends with " recipes" or contains collection keywords
+                        collection_keywords = [
+                            ' recipes', ' dishes', ' ideas',
+                            'collection', 'roundup',
+                            'best ', 'top ', 'easy recipes',
+                            'dinner recipes', 'lunch recipes', 'breakfast recipes'
+                        ]
+
+                        # Check if title matches collection patterns
+                        is_collection = (
+                            title_lower.endswith(' recipes') or
+                            title_lower.endswith(' dishes') or
+                            any(keyword in title_lower for keyword in collection_keywords)
+                        )
+
+                        # Also check for number patterns like "10 easy recipes"
+                        has_number_list = bool(re.search(r'\d+\s+(easy|quick|best|top)?\s*(recipes|dishes|meals)', title_lower))
+
+                        if is_collection or has_number_list:
+                            # This is a collection page, not an individual recipe
+                            continue
+
+                    recipe["title"] = title
                     recipe["description"] = data.get("description")
                     recipe["ingredients"] = data.get("recipeIngredient", [])
 

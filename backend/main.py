@@ -132,10 +132,15 @@ class RecipeResult(BaseModel):
     source: str
     score: float
 
+class CollectionPage(BaseModel):
+    title: str
+    url: str
+
 class ChatResponse(BaseModel):
     response: str
     recipes: List[RecipeResult]
     facts: Optional[List[str]] = []
+    collection_pages: Optional[List[CollectionPage]] = []
 
 # --------------------------------------------------
 # MCP Pipeline
@@ -173,38 +178,28 @@ def mcp_process_query(query: str, preferences: Optional[UserPreferences] = None)
             })
         logger.info(f"✅ Added {len(recipes_list)} recipes from database")
 
-    # Step 3: If no RAG DB results, scrape URLs from web search
+    # Step 3: If no RAG DB results, use pre-scraped and filtered recipes from orchestrator
     elif orchestrator_result.get("has_web_results"):
         logger.info("🌐 Using web search results")
         web_results = orchestrator_result.get("web_results", {})
-        search_result = web_results.get("search_result", {})
-        urls = [r.get("url") for r in search_result.get("results", []) if r.get("url")]
 
-        logger.info(f"🔍 Attempting to scrape {len(urls)} URLs from web search...")
-        for idx, url in enumerate(urls[:5], 1):  # Limit to top 5 URLs
-            try:
-                logger.info(f"  [{idx}/{min(5, len(urls))}] Scraping: {url[:60]}...")
-                recipe = scrape_recipe_via_mcp(url)
+        # Use the pre-scraped, filtered recipes from orchestrator (already limited to 3)
+        web_recipes = web_results.get("recipes", [])
 
-                # Filter out failed scrapes
-                if recipe.get("title") == "Could not fetch recipe":
-                    logger.warning(f"  ⚠️ Skipping failed scrape: {url[:60]}")
-                    continue
-
-                # Web results get 95% match (they're from search, so relevant)
+        if web_recipes:
+            logger.info(f"✅ Using {len(web_recipes)} pre-scraped recipes from orchestrator")
+            for recipe in web_recipes:
                 recipes_list.append({
                     "title": recipe.get("title", "Recipe"),
                     "ingredients": recipe.get("ingredients", []),
                     "instructions": recipe.get("instructions", []),
                     "facts": recipe.get("facts", {}),
-                    "source": recipe.get("source", url),
+                    "source": recipe.get("source", "web"),
                     "score": 95.0  # High score for web results since they matched search
                 })
-                logger.info(f"  ✅ Successfully scraped: {recipe.get('title', 'Unknown')[:50]}")
-            except Exception as e:
-                logger.warning(f"  ⚠️ Failed to scrape {url[:60]}: {str(e)[:100]}")
-
-        logger.info(f"✅ Total successfully scraped recipes: {len(recipes_list)}")
+                logger.info(f"  ✅ Added recipe: {recipe.get('title', 'Unknown')[:50]}")
+        else:
+            logger.warning("⚠️ No recipes available from web search after filtering")
 
     logger.info(f"💡 Generated {len(facts_list)} culinary facts")
     if facts_list:
@@ -217,7 +212,8 @@ def mcp_process_query(query: str, preferences: Optional[UserPreferences] = None)
     return {
         "response": orchestrator_result.get("message", "I couldn't find relevant recipes."),
         "recipes": recipes_list,
-        "facts": facts_list
+        "facts": facts_list,
+        "collection_pages": orchestrator_result.get("collection_pages", [])
     }
 
 # --------------------------------------------------
@@ -262,7 +258,8 @@ def chat(req: ChatRequest):
         response_data = {
             "response": result.get("response", ""),
             "recipes": validated_recipes,
-            "facts": result.get("facts", [])
+            "facts": result.get("facts", []),
+            "collection_pages": result.get("collection_pages", [])
         }
 
         logger.info(f"📤 Sending response with {len(response_data['facts'])} facts")

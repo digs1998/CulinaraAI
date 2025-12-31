@@ -83,6 +83,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
           content: response.response,
           recipes: response.recipes,
           facts: response.facts, // 👈 LLM-generated facts
+          collection_pages: response.collection_pages,
         },
       ]);
     } catch (err) {
@@ -132,7 +133,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
       parts.push(`${preferences.servings} servings`);
       if (preferences.goal) parts.push(goalMap[preferences.goal] || preferences.goal.toLowerCase());
 
-      const query = `Show me recipes that are ${parts.join(", ")}`;
+      const query = `What dishes do you recommend for ${parts.join(", ")}?`;
 
       handleSend(query);
     }
@@ -438,6 +439,47 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
 
         .recipes-container {
           margin-top: 12px;
+        }
+
+        .collection-pages-container {
+          margin-top: 16px;
+          padding: 12px 16px;
+          background: rgba(34, 197, 94, 0.08);
+          border-radius: 12px;
+          border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .collection-pages-heading {
+          margin: 0 0 10px 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: #166534;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .collection-pages-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .collection-page-link {
+          color: #16a34a;
+          text-decoration: none;
+          font-size: 13px;
+          padding: 8px 12px;
+          background: white;
+          border-radius: 8px;
+          transition: all 0.2s;
+          border: 1px solid rgba(34, 197, 94, 0.2);
+          display: block;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .collection-page-link:hover {
+          background: rgba(34, 197, 94, 0.1);
+          border-color: #22c55e;
+          transform: translateX(4px);
         }
 
         .loading-indicator {
@@ -828,8 +870,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
             {messages.map((message, idx) => (
               <div key={idx} className={`message-bubble ${message.role}`}>
                 <div className={`message-content ${message.role}`}>
-                  {/* Assistant text */}
-                  {message.content && (
+                  {/* Assistant text - only show if not empty */}
+                  {message.content && message.content.trim() !== "" && (
                     <p className="message-text">{message.content}</p>
                   )}
 
@@ -849,6 +891,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToPreference
                   {message.recipes && message.recipes.length > 0 && (
                     <div className="recipes-container">
                       <RecipeResults recipes={message.recipes} />
+                    </div>
+                  )}
+
+                  {/* Collection Pages (Additional Resources) */}
+                  {message.collection_pages && message.collection_pages.length > 0 && (
+                    <div className="collection-pages-container">
+                      <h4 className="collection-pages-heading">📚 More Recipe Ideas</h4>
+                      <div className="collection-pages-list">
+                        {message.collection_pages.map((page, idx) => (
+                          <a
+                            key={idx}
+                            href={page.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="collection-page-link"
+                          >
+                            {page.title}
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

@@ -1,0 +1,1010 @@
+/Users/Lenovo/Desktop/Education/CulinaraAI/backend/rag_engine.py:5: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+/Users/Lenovo/Desktop/Education/CulinaraAI/backend/main.py:60: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:CulinaraAI:📦 Serving frontend from /Users/Lenovo/Desktop/Education/CulinaraAI/frontend/dist
+INFO:     Will watch for changes in these directories: ['/Users/Lenovo/Desktop/Education/CulinaraAI/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1894] using WatchFiles
+/Users/Lenovo/Desktop/Education/CulinaraAI/backend/rag_engine.py:5: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:CulinaraAI:📦 Serving frontend from /Users/Lenovo/Desktop/Education/CulinaraAI/frontend/dist
+INFO:CulinaraAI:📦 Serving frontend from /Users/Lenovo/Desktop/Education/CulinaraAI/frontend/dist
+INFO:     Started server process [1911]
+INFO:     Waiting for application startup.
+INFO:CulinaraAI:🚀 Initializing CulinaraAI RAG Engine
+INFO:CulinaraAI:📁 Found ChromaDB at: /Users/Lenovo/Desktop/Education/CulinaraAI/backend/data/chroma_db
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:CulinaraAI:📊 Collection has 296 recipes
+INFO:CulinaraAI:✅ RAG Engine ready with ChromaDB
+INFO:CulinaraAI:✅ MCP Orchestrator ready
+INFO:     Application startup complete.
+INFO:watchfiles.main:6 changes detected
+INFO:CulinaraAI:============================================================
+INFO:CulinaraAI:🎯 MCP Orchestrator Processing: 'What should I cook?'
+INFO:CulinaraAI:👤 User Preferences: diets=['Vegetarian'], skill=Beginner, servings=2, goal=Energy
+INFO:CulinaraAI:============================================================
+INFO:httpx:HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:CulinaraAI:📚 Using database results
+INFO:CulinaraAI:✅ Added 1 recipes from database
+INFO:CulinaraAI:💡 Generated 1 culinary facts
+INFO:CulinaraAI:📋 Facts being returned:
+INFO:CulinaraAI:   1. Did you know that tomatoes, which are a key ingredient in the tomato sauce of the vegetarian lasagne
+INFO:CulinaraAI:📤 Sending response with 1 facts
+🔑 Groq API Key present: True
+✅ Groq client initialized successfully (primary LLM)
+🔑 Gemini API Key present: True
+🤖 Initializing Gemini model: gemini-2.0-flash-exp (fallback LLM)
+✅ Gemini model initialized successfully
+🎯 Using Groq as primary LLM for facts generation
+
+============================================================
+🎯 MCP Orchestrator Processing: 'What should I cook?'
+👤 User Preferences Applied:
+   • Diets: ['Vegetarian']
+   • Skill: Beginner
+   • Servings: 2
+   • Goal: Energy
+============================================================
+
+🔍 Generated specific query from preferences: 'easy vegetarian lasagne'
+📚 RAG DB Pipeline:
+  → Searching local database...
+    🔍 Searching ChromaDB for: 'easy vegetarian lasagne'
+    📊 Parameters: top_k=10, min_score=0.35
+    🔑 Key terms: ['lasagne', 'vegetarian', 'easy']
+    🥘 Ingredients: []
+    👨‍🍳 Methods: []
+    📋 ChromaDB returned 50 candidates
+      • Vegetarian lasagne: base=0.451, boost=0.060, final=0.511, keyword=True
+      • Lasagna For Two: base=0.214, boost=0.000, final=0.214, keyword=False
+      • Sausage Lasagna: base=0.201, boost=0.000, final=0.201, keyword=False
+      • Rigatoni with Quick Mushroom Bolognese: base=0.140, boost=0.000, final=0.140, keyword=False
+      • Sausage & soy fried rice: base=0.070, boost=0.000, final=0.070, keyword=False
+      • Veggie burritos: base=0.052, boost=0.000, final=0.052, keyword=False
+      • Baked Ziti with Creamy Leeks, Kale, and : base=0.045, boost=0.000, final=0.045, keyword=False
+      • Cheese Ravioli with Pumpkin Cream Sauce: base=0.004, boost=0.000, final=0.004, keyword=False
+      • Creamy garlic pasta: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Speedy sausage stroganoff tagliatelle: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Pork noodle stir-fry: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Creamy Baked Four-Cheese Pasta: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Creamy halloumi & tomato curry: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Vegetarian Ramen with Shiitakes and Soft: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Creamy White Beans and Greens with Chick: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Mezzi Rigatoni with Spicy Gochujang Toma: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Spicy root & lentil casserole: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Jo Mama's World Famous Spaghetti: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Tallarines Verdes (Peruvian Green Noodle: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Spaghetti All'Assassina: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Cutty's-Inspired Eggplant Spuckie: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Hearty Lentil Soup: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Buffalo Chicken Lavash Flatbread: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Crispy Pan-Fried Gnocchi with Cherry Tom: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Speedy lentil coconut curry: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Microwave prawn laksa noodle soup: base=0.000, boost=0.000, final=0.000, keyword=False
+      • One-Pot Pasta with Quick Tomato Sauce: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Best-Ever Pasta with Butter and Parmesan: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Make-Ahead Breakfast Casserole: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Shepherd's Pie for Two: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Potato crust quiche: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Oven-baked risotto: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Pasta alla Gricia (Rigatoni with Pancett: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Personal Pizzas: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Pasta with Garlic and Oil—Aglio e Olio: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Kale caesar salad: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Cacio e Pepe for Two: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Torta Caprese: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Our Zuppa Toscana: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Easy white bread: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Crispy Frico Caesar Salad: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Quick fried rice: base=0.000, boost=0.000, final=0.000, keyword=False
+      • White Beans and Chorizo with Quick Marin: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Chickpea Curry: base=0.000, boost=0.000, final=0.000, keyword=False
+      • One-Pan Easy Baked Mac and Cheese: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Charred Vegetable Tostadas with Refried : base=0.000, boost=0.000, final=0.000, keyword=False
+      • Breakfast Quesadillas: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Quick & spicy chicken noodles: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Courgette fries: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Cheese omelette: base=0.000, boost=0.000, final=0.000, keyword=False
+    ✅ Returning 1 results (after filtering)
+  ✓ Accepted: Vegetarian lasagne (score: 0.531, keyword: True)
+
+  ✓ Found 1 relevant recipes, limited to 1
+  → Generating culinary facts...
+    📋 Context length: 2165 characters
+    🔍 Context preview: 
+==================================================
+Recipe: Vegetarian lasagne
+
+Ingredients:
+- 3 red peppers cut into large chunks
+- 2 aubergines cut into ½ cm thick slices
+- 8 tbsp olive oil plus ext...
+    🔄 Calling Groq API for facts generation...
+    📝 Raw fact response: Did you know that tomatoes, which are a key ingredient in the tomato sauce of the vegetarian lasagne, were originally believed to be poisonous in North America and Europe, and were only widely accepted as a food ingredient after Italian immigrants brought their culinary traditions to the United States in the 18th century?
+
+    ✅ Generated fact successfully
+       Did you know that tomatoes, which are a key ingredient in the tomato sauce of the vegetarian lasagne...
+  ✓ Generated 1 facts
+  ✓ RAG DB processing complete
+
+✓ Found results in database, skipping web search
+
+🔀 Combining Results...
+  ✓ Using results from: database (1 recipes)
+INFO:     127.0.0.1:57541 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:CulinaraAI:============================================================
+INFO:CulinaraAI:🎯 MCP Orchestrator Processing: 'What should I cook?'
+INFO:CulinaraAI:👤 User Preferences: diets=['Non-Vegetarian'], skill=Intermediate, servings=4, goal=Energy
+INFO:CulinaraAI:============================================================
+INFO:httpx:HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:CulinaraAI:📚 Using database results
+INFO:CulinaraAI:✅ Added 3 recipes from database
+INFO:CulinaraAI:💡 Generated 1 culinary facts
+INFO:CulinaraAI:📋 Facts being returned:
+INFO:CulinaraAI:   1. Did you know that pineapple, a key ingredient in the Skillet-Roasted Chicken Breasts with Rustic Pin
+INFO:CulinaraAI:📤 Sending response with 1 facts
+
+============================================================
+🎯 MCP Orchestrator Processing: 'What should I cook?'
+👤 User Preferences Applied:
+   • Diets: ['Non-Vegetarian']
+   • Skill: Intermediate
+   • Servings: 4
+   • Goal: Energy
+============================================================
+
+🔍 Generated specific query from preferences: 'chicken'
+📚 RAG DB Pipeline:
+  → Searching local database...
+    🔍 Searching ChromaDB for: 'chicken'
+    📊 Parameters: top_k=10, min_score=0.35
+    🔑 Key terms: ['chicken']
+    🥘 Ingredients: ['chicken']
+    👨‍🍳 Methods: []
+    📋 ChromaDB returned 50 candidates
+      • Skillet-Roasted Chicken Breasts with Rus: base=0.292, boost=0.110, final=0.402, keyword=True
+      • Lemon-Turmeric Chicken and Rice with Pic: base=0.290, boost=0.110, final=0.400, keyword=True
+      • Greek Chicken: base=0.276, boost=0.110, final=0.386, keyword=True
+      • Gingery Turmeric Chicken Soup: base=0.268, boost=0.110, final=0.378, keyword=True
+      • Harissa-Rubbed Chicken Thighs with Charr: base=0.266, boost=0.110, final=0.376, keyword=True
+      • Lemon-Braised Chicken with Pearl Couscou: base=0.255, boost=0.110, final=0.365, keyword=True
+      • Chongqing Chicken (Dry Chili Chicken 辣子雞: base=0.250, boost=0.110, final=0.360, keyword=True
+      • Make-Ahead Boneless Skinless Chicken Bre: base=0.247, boost=0.110, final=0.357, keyword=True
+      • Quick & spicy chicken noodles: base=0.245, boost=0.110, final=0.355, keyword=True
+      • Chicken Cacciatore for Two: base=0.244, boost=0.110, final=0.354, keyword=True
+      • Hot Honey Sesame Chicken: base=0.241, boost=0.110, final=0.351, keyword=True
+      • Skillet Chicken with Orzo, Spinach, and : base=0.240, boost=0.110, final=0.350, keyword=True
+      • Cumin-Cardamom Spiced Chicken with Parsl: base=0.237, boost=0.110, final=0.347, keyword=True
+      • Baharat Chicken with Potatoes and Herb-D: base=0.236, boost=0.110, final=0.346, keyword=True
+      • Easy chicken curry: base=0.235, boost=0.110, final=0.345, keyword=True
+      • Charred Broccoli Caesar Salad with Chick: base=0.233, boost=0.110, final=0.343, keyword=True
+      • Sheet-Pan Garlic Roasted Chicken with Sw: base=0.226, boost=0.110, final=0.336, keyword=True
+      • Crispy shredded chicken: base=0.226, boost=0.110, final=0.336, keyword=True
+      • Pan-Seared Chicken Breasts with Chimichu: base=0.224, boost=0.110, final=0.334, keyword=True
+      • Old-Fashioned Chicken Noodle Soup: base=0.222, boost=0.110, final=0.332, keyword=True
+      • Skillet-Roasted Chicken Breasts with Rus: base=0.220, boost=0.110, final=0.330, keyword=True
+      • Couscous Stuffed Chicken Thighs with Roa: base=0.218, boost=0.110, final=0.328, keyword=True
+      • Chicken Piccata for Two: base=0.212, boost=0.110, final=0.322, keyword=True
+      • Soy Sauce Chicken (Chǐyóu Jī/豉油雞): base=0.210, boost=0.110, final=0.320, keyword=True
+      • Bourbon Chicken: base=0.206, boost=0.110, final=0.316, keyword=True
+      • Creamy Tomato Orzo with Crispy Parmesan : base=0.204, boost=0.110, final=0.314, keyword=True
+      • Nanyang Chicken Curry with Potatoes: base=0.197, boost=0.110, final=0.307, keyword=True
+      • Easy teriyaki chicken: base=0.178, boost=0.110, final=0.288, keyword=True
+      • Spiced Chicken Thighs with Dates and Car: base=0.176, boost=0.110, final=0.286, keyword=True
+      • Grilled Balsamic Chicken with Peaches an: base=0.175, boost=0.110, final=0.285, keyword=True
+      • Murgh Makhani (Indian Butter Chicken): base=0.172, boost=0.110, final=0.282, keyword=True
+      • Seared Chicken and Butternut Squash with: base=0.170, boost=0.110, final=0.280, keyword=True
+      • Chicken Milanese Caprese: base=0.170, boost=0.110, final=0.280, keyword=True
+      • Chicken Chow Mein Bowl for Two: base=0.168, boost=0.110, final=0.278, keyword=True
+      • One-Pan Roasted Chicken Breasts with Swe: base=0.158, boost=0.110, final=0.268, keyword=True
+      • Double-Crust Chicken Pot Pie: base=0.158, boost=0.110, final=0.268, keyword=True
+      • Katsu Curry (Crispy Chicken Cutlets with: base=0.154, boost=0.110, final=0.264, keyword=True
+      • Crock-Pot Chicken With Black Beans &amp;: base=0.153, boost=0.110, final=0.263, keyword=True
+      • Chicken and Sausage Gumbo for Two: base=0.153, boost=0.110, final=0.263, keyword=True
+      • Easy chicken fajitas: base=0.140, boost=0.110, final=0.250, keyword=True
+      • Napa Cabbage Salad with Chicken, Apple, : base=0.133, boost=0.110, final=0.243, keyword=True
+      • Murgh Makhani (Indian Butter Chicken) fo: base=0.133, boost=0.110, final=0.243, keyword=True
+      • Chicken and Dumplings for Two: base=0.131, boost=0.110, final=0.241, keyword=True
+      • Kou Shui Ji (Mouthwatering Chicken): base=0.130, boost=0.110, final=0.240, keyword=True
+      • Green Mole with Chayote and Chicken: base=0.114, boost=0.110, final=0.224, keyword=True
+      • Golden Chicken Korma: base=0.114, boost=0.110, final=0.224, keyword=True
+      • Quick chicken hummus bowl: base=0.114, boost=0.110, final=0.224, keyword=True
+      • Honey-Roasted Cornish Game Hens for Two: base=0.113, boost=0.110, final=0.223, keyword=True
+      • Microwave sweet & sour chicken: base=0.111, boost=0.110, final=0.221, keyword=True
+      • Chicken and sweet potato traybake: base=0.099, boost=0.110, final=0.209, keyword=True
+    ✅ Returning 10 results (after filtering)
+  ✓ Accepted: Skillet-Roasted Chicken Breasts with Rustic Pineap (score: 0.402, keyword: True)
+  ✓ Accepted: Lemon-Turmeric Chicken and Rice with Pickled Red O (score: 0.400, keyword: True)
+  ✓ Accepted: Greek Chicken (score: 0.386, keyword: True)
+  ✓ Accepted: Gingery Turmeric Chicken Soup (score: 0.378, keyword: True)
+  ✓ Accepted: Harissa-Rubbed Chicken Thighs with Charred Cucumbe (score: 0.376, keyword: True)
+  ✓ Accepted: Lemon-Braised Chicken with Pearl Couscous, Articho (score: 0.365, keyword: True)
+  ✓ Accepted: Chongqing Chicken (Dry Chili Chicken 辣子雞) (score: 0.360, keyword: True)
+  ✓ Accepted: Make-Ahead Boneless Skinless Chicken Breasts (score: 0.357, keyword: True)
+  ✓ Accepted: Quick & spicy chicken noodles (score: 0.355, keyword: True)
+  ✓ Accepted: Chicken Cacciatore for Two (score: 0.354, keyword: True)
+
+  ✓ Found 10 relevant recipes, limited to 3
+  → Generating culinary facts...
+    📋 Context length: 6863 characters
+    🔍 Context preview: 
+==================================================
+Recipe: Skillet-Roasted Chicken Breasts with Rustic Pineapple-Cilantro Sauce
+
+Ingredients:
+- 4 (10- to 12-ounce) bone-in split chicken breasts , rib...
+    🔄 Calling Groq API for facts generation...
+    📝 Raw fact response: Did you know that pineapple, a key ingredient in the Skillet-Roasted Chicken Breasts with Rustic Pineapple-Cilantro Sauce, is not a single fruit, but rather a composite of many tiny fruitlets, with each scale on the pineapple's surface representing an individual flower that has fused together to form the larger fruit?
+
+    ✅ Generated fact successfully
+       Did you know that pineapple, a key ingredient in the Skillet-Roasted Chicken Breasts with Rustic Pin...
+  ✓ Generated 1 facts
+  ✓ RAG DB processing complete
+
+✓ Found results in database, skipping web search
+
+🔀 Combining Results...
+  ✓ Using results from: database (3 recipes)
+INFO:     127.0.0.1:57606 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:CulinaraAI:============================================================
+INFO:CulinaraAI:🎯 MCP Orchestrator Processing: 'What should I cook?'
+INFO:CulinaraAI:👤 User Preferences: diets=['Gluten Free'], skill=Beginner, servings=2, goal=Weight Loss
+INFO:CulinaraAI:============================================================
+INFO:httpx:HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+
+============================================================
+🎯 MCP Orchestrator Processing: 'What should I cook?'
+👤 User Preferences Applied:
+   • Diets: ['Gluten Free']
+   • Skill: Beginner
+   • Servings: 2
+   • Goal: Weight Loss
+============================================================
+
+🔍 Generated specific query from preferences: 'easy gluten free curry'
+📚 RAG DB Pipeline:
+  → Searching local database...
+    🔍 Searching ChromaDB for: 'easy gluten free curry'
+    📊 Parameters: top_k=10, min_score=0.35
+    🔑 Key terms: ['free', 'gluten', 'easy', 'curry']
+    🥘 Ingredients: ['curry']
+    👨‍🍳 Methods: []
+    📋 ChromaDB returned 50 candidates
+      • Speedy lentil coconut curry: base=0.246, boost=0.110, final=0.356, keyword=True
+      • Easy chicken curry: base=0.225, boost=0.140, final=0.365, keyword=True
+      • Quick prawn, coconut & tomato curry: base=0.208, boost=0.110, final=0.318, keyword=True
+      • Chana Masala: base=0.135, boost=0.000, final=0.135, keyword=False
+      • Chickpea Curry: base=0.118, boost=0.110, final=0.228, keyword=True
+      • Golden Chicken Korma: base=0.100, boost=0.000, final=0.100, keyword=False
+      • Creamy halloumi & tomato curry: base=0.099, boost=0.110, final=0.209, keyword=True
+      • Stir-Fry with Curry Sauce: base=0.076, boost=0.110, final=0.186, keyword=True
+      • Katsu Curry (Crispy Chicken Cutlets with: base=0.063, boost=0.110, final=0.173, keyword=True
+      • Spicy root & lentil casserole: base=0.054, boost=0.110, final=0.164, keyword=True
+      • Nanyang Chicken Curry with Potatoes: base=0.027, boost=0.110, final=0.137, keyword=True
+      • Lemon-Turmeric Chicken and Rice with Pic: base=0.013, boost=0.000, final=0.013, keyword=False
+      • Gluten-Free Chocolate Crinkle Cookies: base=0.010, boost=0.060, final=0.070, keyword=True
+      • Murgh Makhani (Indian Butter Chicken) fo: base=0.001, boost=0.000, final=0.001, keyword=False
+      • Sausage & soy fried rice: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Murgh Makhani (Indian Butter Chicken): base=0.000, boost=0.000, final=0.000, keyword=False
+      • Gluten-Free Croissants: base=0.000, boost=0.060, final=0.060, keyword=True
+      • Gluten-Free Apple Pie Coffee Cake: base=0.000, boost=0.060, final=0.060, keyword=True
+      • Leftover turkey curry: base=0.000, boost=0.110, final=0.110, keyword=True
+      • Chocolate Fudge Cake with Ganache and Mi: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Gingery Turmeric Chicken Soup: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Pork noodle stir-fry: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Garlic prawn rice: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Red Lentil Soup with Warm Spices: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Chicken and Dumplings for Two: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Creamy Chickpea and Sweet Potato Stew: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Microwave prawn laksa noodle soup: base=0.000, boost=0.110, final=0.110, keyword=True
+      • Shepherd's Pie for Two: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Easy teriyaki chicken: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Chicken and sweet potato traybake: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Torta Caprese: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Easy chicken fajitas: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Veggie burritos: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Su Shui Jiao (Northern Chinese–Style Cab: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Da Lu Mian (Gravy Noodles): base=0.000, boost=0.000, final=0.000, keyword=False
+      • Quick chicken hummus bowl: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Skillet-Roasted Chicken Breasts with Rus: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Microwave sweet & sour chicken: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Quick fried rice: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Vegetarian lasagne: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Quick & spicy chicken noodles: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Crispy shredded chicken: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Loaded Sweet Potato Wedges with Tempeh: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Cumin-Cardamom Spiced Chicken with Parsl: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Bulgur with Roasted Vegetables, White Be: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Chicken and Sausage Gumbo for Two: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Tahini noodles with red cabbage & Sichua: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Easy white bread: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Beef and Bean Chili: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Weeknight Chicken Enchiladas: base=0.000, boost=0.000, final=0.000, keyword=False
+    ✅ Returning 2 results (after filtering)
+  ⚬ Filtered (diet): Easy chicken curry (not gluten free)
+  ✓ Accepted: Speedy lentil coconut curry (score: 0.376, keyword: True)
+
+  ✓ Found 1 relevant recipes, limited to 1
+  → Generating culinary facts...
+    📋 Context length: 1286 characters
+    🔍 Context preview: 
+==================================================
+Recipe: Speedy lentil coconut curry
+
+Ingredients:
+- 1 onion roughly chopped
+- 2 garlic cloves roughly chopped
+- 1 red or green chilli roughly choppe...
+    🔄 Calling Groq API for facts generation...
+    ⚠️ Groq facts generation error: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01jnq2dh9gfdc8ka3sdf28hwr7` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99588, Requested 628. Please try again in 3m6.624s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+    🔄 Calling Gemini API for facts generation...
+    ⚠️ Gemini facts generation error: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-exp
+Please retry in 5.479820456s. [links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+, retry_delay {
+  seconds: 5
+}
+]INFO:CulinaraAI:📚 Using database results
+INFO:CulinaraAI:✅ Added 1 recipes from database
+INFO:CulinaraAI:💡 Generated 0 culinary facts
+WARNING:CulinaraAI:⚠️ No facts generated for this query!
+INFO:CulinaraAI:📤 Sending response with 0 facts
+
+    ⚠️ All LLM attempts failed, no facts available
+  ✓ Generated 0 facts
+  ✓ RAG DB processing complete
+
+✓ Found results in database, skipping web search
+
+🔀 Combining Results...
+  ✓ Using results from: database (1 recipes)
+INFO:     127.0.0.1:57688 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:CulinaraAI:============================================================
+INFO:CulinaraAI:🎯 MCP Orchestrator Processing: 'What should I cook?'
+INFO:CulinaraAI:👤 User Preferences: diets=['Low Carb'], skill=Advanced, servings=2, goal=Weight Loss
+INFO:CulinaraAI:============================================================
+
+============================================================
+🎯 MCP Orchestrator Processing: 'What should I cook?'
+👤 User Preferences Applied:
+   • Diets: ['Low Carb']
+   • Skill: Advanced
+   • Servings: 2
+   • Goal: Weight Loss
+============================================================
+
+🔍 Generated specific query from preferences: 'classic low carb salad'
+📚 RAG DB Pipeline:
+  → Searching local database...
+    🔍 Searching ChromaDB for: 'classic low carb salad'
+    📊 Parameters: top_k=10, min_score=0.35
+    🔑 Key terms: ['low', 'classic', 'carb', 'salad']
+    🥘 Ingredients: []
+    👨‍🍳 Methods: []
+    📋 ChromaDB returned 50 candidates
+      • Classic Caesar Salad for Two: base=0.238, boost=0.060, final=0.298, keyword=True
+      • Hearty Green Salad with Hot-Smoked Salmo: base=0.142, boost=0.030, final=0.172, keyword=False
+      • Kale caesar salad: base=0.123, boost=0.030, final=0.153, keyword=False
+      • Salade Niçoise for Two: base=0.106, boost=0.030, final=0.136, keyword=False
+      • Napa Cabbage Salad with Chicken, Apple, : base=0.081, boost=0.030, final=0.111, keyword=False
+      • Chopped Winter Salad with Butternut Squa: base=0.075, boost=0.030, final=0.105, keyword=False
+      • Shaved Celery Salad with Pomegranate-Hon: base=0.034, boost=0.030, final=0.064, keyword=False
+      • Crispy Frico Caesar Salad: base=0.032, boost=0.030, final=0.062, keyword=False
+      • Charred Broccoli Caesar Salad with Chick: base=0.029, boost=0.030, final=0.059, keyword=False
+      • Carrot and Smoked Salmon Salad: base=0.016, boost=0.030, final=0.046, keyword=False
+      • Pearl couscous salad with hot smoked tro: base=0.014, boost=0.060, final=0.074, keyword=True
+      • Shrimp Salad with Roasted Red Pepper and: base=0.001, boost=0.030, final=0.031, keyword=False
+      • Wheat Berry Salad with Radicchio, Dried : base=0.000, boost=0.030, final=0.030, keyword=False
+      • Farro Salad with Asparagus, Sugar Snap P: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Marinated Seafood Salad: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Tuna salad sandwich: base=0.000, boost=0.060, final=0.060, keyword=True
+      • Texas Caviar: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Quick chicken hummus bowl: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Classic Deviled Eggs: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Grilled Shrimp and Corn Salad: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Bulgur with Roasted Vegetables, White Be: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Harissa-Rubbed Chicken Thighs with Charr: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Chicken Milanese Caprese: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Pressure-Cooker Poached Salmon with Cucu: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Cumin-Cardamom Spiced Chicken with Parsl: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Seared Chicken and Butternut Squash with: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Tahini noodles with red cabbage & Sichua: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Liang Mian (Chilled Sesame Noodles): base=0.000, boost=0.000, final=0.000, keyword=False
+      • Lemon-Braised Chicken with Pearl Couscou: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Greek Chicken Burgers with Feta Sauce an: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Furikake-Crusted Salmon with Cucumber Sa: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Pan-Roasted Salmon with Fennel and Orang: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Hearty Lentil Soup: base=0.000, boost=0.030, final=0.030, keyword=False
+      • Torta Caprese: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Greek Chicken: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Gluten-Free Apple Pie Coffee Cake: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Pan-Roasted Cod with Cilantro Chimichurr: base=0.000, boost=0.000, final=0.000, keyword=False
+      • White Beans and Chorizo with Quick Marin: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Salmon Piccata: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Creamy White Beans and Greens with Chick: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Grilled Tuna Burgers with Wasabi and Pic: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Speedy lentil coconut curry: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Chicken Piccata for Two: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Reuben sandwich: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Grilled Scallops with Fennel and Orange : base=0.000, boost=0.030, final=0.030, keyword=False
+      • Baharat Chicken with Potatoes and Herb-D: base=0.000, boost=0.060, final=0.060, keyword=True
+      • Our Zuppa Toscana: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Skillet Chicken with Orzo, Spinach, and : base=0.000, boost=0.000, final=0.000, keyword=False
+      • Crispy Potato Latkes: base=0.000, boost=0.000, final=0.000, keyword=False
+      • Cutty's-Inspired Eggplant Spuckie: base=0.000, boost=0.000, final=0.000, keyword=False
+    ✅ Returning 0 results (after filtering)
+  ⚠️ No results found in local database
+
+⚠️ No results in database, falling back to web search...
+
+
+🌐 Web Search Pipeline:
+  → Searching internet...
+  → Searching for: 'low carb recipe'
+  ✓ Found 5 recipe sources online
+  [1/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.eatwell101.com%2F...
+[FETCH]... ↓ https://www.eatwell101.com/quick-low-carb-dinner-recipes           
+| ✓ | ⏱: 2.26s 
+[SCRAPE].. ◆ https://www.eatwell101.com/quick-low-carb-dinner-recipes           
+| ✓ | ⏱: 0.37s 
+[COMPLETE] ● https://www.eatwell101.com/quick-low-carb-dinner-recipes           
+| ✓ | ⏱: 2.64s 
+    ⚠️ Could not parse recipe from HTML
+    ✗ Failed to extract recipe data
+  [2/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.foodnetwork.com%2...
+[FETCH]... ↓ https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes
+| ✓ | ⏱: 2.12s 
+[SCRAPE].. ◆ https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes
+| ✓ | ⏱: 0.10s 
+[COMPLETE] ● https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes
+| ✓ | ⏱: 2.22s 
+    ✓ Success: 45 Healthy, Low-Carb Recipes That Are Full of Flav
+  [3/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.delish.com%2Fcook...
+[FETCH]... ↓ https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/
+| ✓ | ⏱: 1.67s 
+[SCRAPE].. ◆ https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/
+| ✓ | ⏱: 0.05s 
+[COMPLETE] ● https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/
+| ✓ | ⏱: 1.72s 
+    ✓ Success: 105 Dishes You Won't Believe Are Low-Carb
+  [4/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.dietdoctor.com%2F...
+[FETCH]... ↓ https://www.dietdoctor.com/low-carb/recipes                        
+| ✓ | ⏱: 1.46s 
+[SCRAPE].. ◆ https://www.dietdoctor.com/low-carb/recipes                        
+| ✓ | ⏱: 0.12s 
+[COMPLETE] ● https://www.dietdoctor.com/low-carb/recipes                        
+| ✓ | ⏱: 1.58s 
+    ✓ Success: Low carb recipes
+  [5/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.allrecipes.com%2F...
+[FETCH]... ↓ https://www.allrecipes.com/recipes/742/healthy-recipes/low-carb/   
+| ✓ | ⏱: 1.72s 
+[SCRAPE].. ◆ https://www.allrecipes.com/recipes/742/healthy-recipes/low-carb/   
+| ✓ | ⏱: 0.09s 
+[COMPLETE] ● https://www.allrecipes.com/recipes/742/healthy-recipes/low-carb/   
+| ✓ | ⏱: 1.81s 
+    ✓ Success: Low-Carb Recipes
+    📚 Collection page found: 45 Healthy, Low-Carb Recipes That Are Full of Flavor
+    📚 Collection page found: 105 Dishes You Won't Believe Are Low-Carb
+    📚 Collection page found: Low carb recipes
+    ✅ Low-Carb Recipes
+
+  → Found 3 collection pages
+  → Current actual_recipes: 1
+  → Extracting individual recipes from collection pages...
+
+  📚 Extracting from collection: https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes...
+[FETCH]... ↓ https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes
+| ✓ | ⏱: 1.50s 
+[SCRAPE].. ◆ https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes
+| ✓ | ⏱: 0.10s 
+[COMPLETE] ● https://www.foodnetwork.com/recipes/photos/healthy-low-carb-recipes
+| ✓ | ⏱: 1.60s 
+    → Strategy 1: Checking for JSON-LD ItemList...
+    → Strategy 2: Looking for recipe cards...
+    → Found 108 potential recipe cards
+    → Analyzing card #1 with 16 links
+      → First link: text='Watch Full Seasons', href=https://watch.foodnetwork.com/?utm_source=marketingsite&utm_
+      ✓ ACCEPTED: 'TV Schedule' → https://www.foodnetwork.com/shows/tv-schedule
+    → Candidate #1: https://www.foodnetwork.com/shows/tv-schedule
+    → Analyzing card #2 with 16 links
+      → First link: text='Watch Full Seasons', href=https://watch.foodnetwork.com/?utm_source=marketingsite&utm_
+      ✓ ACCEPTED: 'TV Schedule' → https://www.foodnetwork.com/shows/tv-schedule
+    → Analyzing card #3 with 1 links
+      → First link: text='', href=//www.foodnetwork.com
+    → Candidate #2: https://www.foodnetwork.com/recipes/main-dish/healthy-main-dishes
+    → Candidate #3: https://www.foodnetwork.com/shows/wildcard-kitchen
+    → Candidate #4: https://www.foodnetwork.com/shows/baking-championship-next-gen
+    → Candidate #5: https://www.foodnetwork.com/shows/worst-cooks-in-america
+    ✓ Strategy 2 SUCCESS: Found 5 recipe links on collection page
+    ✓ Found 5 recipe links on collection page
+→ Scraping: https://www.foodnetwork.com/shows/tv-schedule...
+[FETCH]... ↓ https://www.foodnetwork.com/shows/tv-schedule                      
+| ✓ | ⏱: 1.60s 
+[SCRAPE].. ◆ https://www.foodnetwork.com/shows/tv-schedule                      
+| ✓ | ⏱: 0.13s 
+[COMPLETE] ● https://www.foodnetwork.com/shows/tv-schedule                      
+| ✓ | ⏱: 1.73s 
+      ⚬ Skipped (invalid/non-recipe content): TV Schedule
+→ Scraping: https://www.foodnetwork.com/recipes/main-dish/healthy-main-d...
+[FETCH]... ↓ https://www.foodnetwork.com/recipes/main-dish/healthy-main-dishes  
+| ✓ | ⏱: 2.97s 
+[SCRAPE].. ◆ https://www.foodnetwork.com/recipes/main-dish/healthy-main-dishes  
+| ✓ | ⏱: 0.10s 
+[COMPLETE] ● https://www.foodnetwork.com/recipes/main-dish/healthy-main-dishes  
+| ✓ | ⏱: 3.07s 
+      ⚬ Skipped (invalid/non-recipe content): Healthy Main Dishes
+→ Scraping: https://www.foodnetwork.com/shows/wildcard-kitchen...
+[FETCH]... ↓ https://www.foodnetwork.com/shows/wildcard-kitchen                 
+| ✓ | ⏱: 3.35s 
+[SCRAPE].. ◆ https://www.foodnetwork.com/shows/wildcard-kitchen                 
+| ✓ | ⏱: 0.11s 
+[COMPLETE] ● https://www.foodnetwork.com/shows/wildcard-kitchen                 
+| ✓ | ⏱: 3.47s 
+      ⚬ Skipped (invalid/non-recipe content): Wildcard Kitchen
+
+  📚 Extracting from collection: https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/...
+[FETCH]... ↓ https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/
+| ✓ | ⏱: 1.73s 
+[SCRAPE].. ◆ https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/
+| ✓ | ⏱: 0.06s 
+[COMPLETE] ● https://www.delish.com/cooking/recipe-ideas/g3593/low-carb-recipes/
+| ✓ | ⏱: 1.79s 
+    → Strategy 1: Checking for JSON-LD ItemList...
+    → Strategy 2: Looking for recipe cards...
+    → Strategy 3: Trying link-based extraction with 'recipe' in URL
+    → Found (link-based): Recipe Headquarters → https://www.delish.com/cooking/recipe-ideas/
+    → Found (link-based): weeknight dinner → https://www.delish.com/cooking/recipe-ideas/g3338/
+    → Found (link-based): desserts → https://www.delish.com/cooking/recipe-ideas/g3246/
+    → Found (link-based): chicken → https://www.delish.com/cooking/recipe-ideas/g2972/
+    → Found (link-based): spaghetti squash → https://www.delish.com/cooking/recipe-ideas/a20086
+    ✓ Strategy 3 SUCCESS: Found 5 recipe links
+    ✓ Found 5 recipe links on collection page
+→ Scraping: https://www.delish.com/cooking/recipe-ideas/...
+[FETCH]... ↓ https://www.delish.com/cooking/recipe-ideas/                       
+| ✓ | ⏱: 1.61s 
+[SCRAPE].. ◆ https://www.delish.com/cooking/recipe-ideas/                       
+| ✓ | ⏱: 0.12s 
+[COMPLETE] ● https://www.delish.com/cooking/recipe-ideas/                       
+| ✓ | ⏱: 1.73s 
+      ⚬ Skipped (invalid/non-recipe content): Recipe Headquarters
+→ Scraping: https://www.delish.com/cooking/recipe-ideas/g3338/best-weekn...
+[FETCH]... ↓ 
+https://www.delish.com/cooking/recipe-ideas/g3338/best-weeknight-dinners/       
+| ✓ | ⏱: 1.56s 
+[SCRAPE].. ◆ 
+https://www.delish.com/cooking/recipe-ideas/g3338/best-weeknight-dinners/       
+| ✓ | ⏱: 0.06s 
+[COMPLETE] ● 
+https://www.delish.com/cooking/recipe-ideas/g3338/best-weeknight-dinners/       
+| ✓ | ⏱: 1.62s 
+      ⚬ Skipped (invalid/non-recipe content): 100+ Classic & Creative Weeknight Dinner
+→ Scraping: https://www.delish.com/cooking/recipe-ideas/g3246/easy-desse...
+[FETCH]... ↓ https://www.delish.com/cooking/recipe-ideas/g3246/easy-desserts/   
+| ✓ | ⏱: 1.71s 
+[SCRAPE].. ◆ https://www.delish.com/cooking/recipe-ideas/g3246/easy-desserts/   
+| ✓ | ⏱: 0.05s 
+[COMPLETE] ● https://www.delish.com/cooking/recipe-ideas/g3246/easy-desserts/   
+| ✓ | ⏱: 1.77s 
+INFO:httpx:HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+INFO:CulinaraAI:🌐 Using web search results
+INFO:CulinaraAI:✅ Using 1 pre-scraped recipes from orchestrator
+INFO:CulinaraAI:  ✅ Added recipe: Low-Carb Recipes
+INFO:CulinaraAI:💡 Generated 0 culinary facts
+WARNING:CulinaraAI:⚠️ No facts generated for this query!
+INFO:CulinaraAI:📤 Sending response with 0 facts
+      ⚬ Skipped (invalid/non-recipe content): Think You Can't Bake? These 104 Easy Yet
+  → Limited to 1 recipes for recommendation
+  → Generating culinary facts...
+    📋 Context length: 3017 characters
+    🔍 Context preview: Recipe Sources Found Online:
+
+1. 180 Quick Low Carb Dinners Ready in 30 Minutes or Less
+   URL: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.eatwell101.com%2Fquick%2Dlow%2Dcarb%2Ddinner%2Drecipes&rut=00...
+    🔄 Calling Groq API for facts generation...
+    ⚠️ Groq facts generation error: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01jnq2dh9gfdc8ka3sdf28hwr7` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99521, Requested 1275. Please try again in 11m27.744s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+    🔄 Calling Gemini API for facts generation...
+    ⚠️ Gemini facts generation error: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-exp
+Please retry in 7.367953827s. [links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+, retry_delay {
+  seconds: 7
+}
+]
+    ⚠️ All LLM attempts failed, no facts available
+  ✓ Generated 0 facts
+  ✓ Web search complete
+
+🔀 Combining Results...
+  ✓ Using results from: internet (web search fallback)
+INFO:     127.0.0.1:57713 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:CulinaraAI:============================================================
+INFO:CulinaraAI:🎯 MCP Orchestrator Processing: 'What should I cook?'
+INFO:CulinaraAI:👤 User Preferences: diets=[], skill=Intermediate, servings=4, goal=Balanced
+INFO:CulinaraAI:============================================================
+
+============================================================
+🎯 MCP Orchestrator Processing: 'What should I cook?'
+👤 User Preferences Applied:
+   • Diets: []
+   • Skill: Intermediate
+   • Servings: 4
+   • Goal: Balanced
+============================================================
+
+🔍 Database search query: 'What should I cook?'
+📚 RAG DB Pipeline:
+  → Searching local database...
+    🔍 Searching ChromaDB for: 'What should I cook?'
+    📊 Parameters: top_k=10, min_score=0.35
+    🔑 Key terms: ['should', 'cook', 'what']
+    🥘 Ingredients: []
+    👨‍🍳 Methods: []
+    📋 ChromaDB returned 50 candidates
+      • Stir-Fry with Curry Sauce: base=0.152, boost=0.000, final=0.152, keyword=False
+      • Pan-Roasted Cod with Cilantro Chimichurr: base=0.152, boost=0.000, final=0.152, keyword=False
+      • Shepherd's Pie for Two: base=0.141, boost=0.000, final=0.141, keyword=False
+      • Loaded Sweet Potato Wedges with Tempeh: base=0.130, boost=0.000, final=0.130, keyword=False
+      • Mezzi Rigatoni with Spicy Gochujang Toma: base=0.127, boost=0.030, final=0.157, keyword=False
+      • Grill-Roasted Stuffed Trout: base=0.125, boost=0.000, final=0.125, keyword=False
+      • Skillet-Roasted Chicken Breasts with Rus: base=0.124, boost=0.000, final=0.124, keyword=False
+      • Seared Chicken and Butternut Squash with: base=0.123, boost=0.000, final=0.123, keyword=False
+      • Charred Vegetable Tostadas with Refried : base=0.123, boost=0.000, final=0.123, keyword=False
+      • Hearty Green Salad with Hot-Smoked Salmo: base=0.123, boost=0.030, final=0.153, keyword=False
+      • Pan-Roasted Salmon with Fennel and Orang: base=0.122, boost=0.000, final=0.122, keyword=False
+      • Greek Chicken: base=0.122, boost=0.000, final=0.122, keyword=False
+      • Sizzling Steamed Fish with Chinese Brocc: base=0.121, boost=0.000, final=0.121, keyword=False
+      • Furikake-Crusted Salmon with Cucumber Sa: base=0.121, boost=0.000, final=0.121, keyword=False
+      • Salade Niçoise for Two: base=0.118, boost=0.030, final=0.148, keyword=False
+      • Pressure-Cooker Poached Salmon with Cucu: base=0.118, boost=0.030, final=0.148, keyword=False
+      • Quick prawn, coconut & tomato curry: base=0.117, boost=0.000, final=0.117, keyword=False
+      • Harissa-Rubbed Chicken Thighs with Charr: base=0.116, boost=0.000, final=0.116, keyword=False
+      • Shrimp with Black Bean Sauce For Two: base=0.114, boost=0.000, final=0.114, keyword=False
+      • Creamy halloumi & tomato curry: base=0.114, boost=0.030, final=0.144, keyword=False
+      • Bulgur with Roasted Vegetables, White Be: base=0.114, boost=0.030, final=0.144, keyword=False
+      • Chicken Cacciatore for Two: base=0.113, boost=0.000, final=0.113, keyword=False
+      • Lemon-Turmeric Chicken and Rice with Pic: base=0.112, boost=0.000, final=0.112, keyword=False
+      • Fried Mixed Seafood: base=0.112, boost=0.000, final=0.112, keyword=False
+      • Creamy White Beans and Greens with Chick: base=0.110, boost=0.030, final=0.140, keyword=False
+      • Lemon-Braised Chicken with Pearl Couscou: base=0.109, boost=0.000, final=0.109, keyword=False
+      • One-Pan Roasted Chicken Breasts with Swe: base=0.108, boost=0.000, final=0.108, keyword=False
+      • Oven-baked risotto: base=0.107, boost=0.000, final=0.107, keyword=False
+      • Honey harissa lamb chops: base=0.107, boost=0.000, final=0.107, keyword=False
+      • Stir-Fried Rice Cakes (Chăo Niángāo / 炒年: base=0.105, boost=0.000, final=0.105, keyword=False
+      • Charred Broccoli Caesar Salad with Chick: base=0.105, boost=0.000, final=0.105, keyword=False
+      • Couscous Stuffed Chicken Thighs with Roa: base=0.104, boost=0.000, final=0.104, keyword=False
+      • Baked Ziti with Creamy Leeks, Kale, and : base=0.103, boost=0.030, final=0.133, keyword=False
+      • Pasta alla Gricia (Rigatoni with Pancett: base=0.103, boost=0.000, final=0.103, keyword=False
+      • Breakfast Casserole for Two: base=0.103, boost=0.000, final=0.103, keyword=False
+      • Creamy Tomato Orzo with Crispy Parmesan : base=0.102, boost=0.000, final=0.102, keyword=False
+      • Chickpea Curry: base=0.101, boost=0.000, final=0.101, keyword=False
+      • Chicken Piccata for Two: base=0.101, boost=0.000, final=0.101, keyword=False
+      • Halibut Puttanesca: base=0.100, boost=0.000, final=0.100, keyword=False
+      • Baharat Chicken with Potatoes and Herb-D: base=0.100, boost=0.000, final=0.100, keyword=False
+      • Updated Beef Wellington: base=0.099, boost=0.000, final=0.099, keyword=False
+      • Vegetarian Ramen with Shiitakes and Soft: base=0.099, boost=0.030, final=0.129, keyword=False
+      • Easy chicken fajitas: base=0.098, boost=0.000, final=0.098, keyword=False
+      • Chicken and sweet potato traybake: base=0.098, boost=0.000, final=0.098, keyword=False
+      • Spicy root & lentil casserole: base=0.098, boost=0.000, final=0.098, keyword=False
+      • White Beans and Chorizo with Quick Marin: base=0.098, boost=0.000, final=0.098, keyword=False
+      • Marinated Seafood Salad: base=0.097, boost=0.000, final=0.097, keyword=False
+      • Lasagna For Two: base=0.097, boost=0.000, final=0.097, keyword=False
+      • Sausage & soy fried rice: base=0.097, boost=0.030, final=0.127, keyword=False
+      • Cataplana (Portuguese Seafood Stew) for : base=0.096, boost=0.000, final=0.096, keyword=False
+    ✅ Returning 0 results (after filtering)
+  ⚠️ No results found in local database
+
+⚠️ No results in database, falling back to web search...
+
+
+🌐 Web Search Pipeline:
+  → Searching internet...
+  → Searching for: 'What should I cook? recipe'
+  ✓ Found 4 recipe sources online
+  [1/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.tasteofhome.com%2...
+[FETCH]... ↓ https://www.tasteofhome.com/collection/dinner-ideas/               
+| ✓ | ⏱: 1.62s 
+[SCRAPE].. ◆ https://www.tasteofhome.com/collection/dinner-ideas/               
+| ✓ | ⏱: 0.21s 
+[COMPLETE] ● https://www.tasteofhome.com/collection/dinner-ideas/               
+| ✓ | ⏱: 1.84s 
+    ✓ Success: 92 Perfect Answers to the Question: What Should I 
+  [2/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.delish.com%2Fcook...
+[FETCH]... ↓ 
+https://www.delish.com/cooking/recipe-ideas/g3338/best-weeknight-dinners/       
+| ✓ | ⏱: 1.77s 
+[SCRAPE].. ◆ 
+https://www.delish.com/cooking/recipe-ideas/g3338/best-weeknight-dinners/       
+| ✓ | ⏱: 0.06s 
+[COMPLETE] ● 
+https://www.delish.com/cooking/recipe-ideas/g3338/best-weeknight-dinners/       
+| ✓ | ⏱: 1.82s 
+    ✓ Success: 100+ Classic & Creative Weeknight Dinners You'll W
+  [3/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.thepioneerwoman.c...
+[FETCH]... ↓ 
+https://www.thepioneerwoman.com/food-cooking/meals-menus/g31981626/30-minute-mea
+l-ideas/             | ✓ | ⏱: 1.78s 
+[SCRAPE].. ◆ 
+https://www.thepioneerwoman.com/food-cooking/meals-menus/g31981626/30-minute-mea
+l-ideas/             | ✓ | ⏱: 0.05s 
+[COMPLETE] ● 
+https://www.thepioneerwoman.com/food-cooking/meals-menus/g31981626/30-minute-mea
+l-ideas/             | ✓ | ⏱: 1.83s 
+    ✓ Success: 85 Best 30-Minute Meals for an Easy Weeknight Dinn
+  [4/5] Scraping: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.bbcgoodfood.com%2...
+[FETCH]... ↓ https://www.bbcgoodfood.com/howto/guide/what-to-cook-for-dinner    
+| ✓ | ⏱: 1.72s 
+[SCRAPE].. ◆ https://www.bbcgoodfood.com/howto/guide/what-to-cook-for-dinner    
+| ✓ | ⏱: 0.07s 
+[COMPLETE] ● https://www.bbcgoodfood.com/howto/guide/what-to-cook-for-dinner    
+| ✓ | ⏱: 1.80s 
+    ✓ Success: 30 dinners for when you don’t know what to cook
+    📚 Collection page found: 92 Perfect Answers to the Question: What Should I Make for D
+    📚 Collection page found: 100+ Classic & Creative Weeknight Dinners You'll Want to Mak
+    📚 Collection page found: 85 Best 30-Minute Meals for an Easy Weeknight Dinner
+    📚 Collection page found: 30 dinners for when you don’t know what to cook
+
+  → Found 4 collection pages
+  → Current actual_recipes: 0
+  → Extracting individual recipes from collection pages...
+
+  📚 Extracting from collection: https://www.tasteofhome.com/collection/dinner-ideas/...
+[FETCH]... ↓ https://www.tasteofhome.com/collection/dinner-ideas/               
+| ✓ | ⏱: 1.51s 
+[SCRAPE].. ◆ https://www.tasteofhome.com/collection/dinner-ideas/               
+| ✓ | ⏱: 0.21s 
+[COMPLETE] ● https://www.tasteofhome.com/collection/dinner-ideas/               
+| ✓ | ⏱: 1.72s 
+    → Strategy 1: Checking for JSON-LD ItemList...
+    → Strategy 2: Looking for recipe cards...
+    → Found 91 potential recipe cards
+    → Analyzing card #1 with 5 links
+      → Narrowed to 1 main links from 5 total
+      → First link: text='', href=https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sand
+      ✓ ACCEPTED: '' → https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sand
+    → Candidate #1: https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sandwiches/
+    → Analyzing card #2 with 5 links
+      → Narrowed to 1 main links from 5 total
+      → First link: text='', href=https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-f
+      ✓ ACCEPTED: '' → https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-f
+    → Candidate #2: https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-fry/
+    → Analyzing card #3 with 5 links
+      → Narrowed to 1 main links from 5 total
+      → First link: text='', href=https://www.tasteofhome.com/recipes/blt-pizza/
+      ✗ Rejected https://www.tasteofhome.com/recipes/blt-pizza/ - last part too short or numeric
+    → Candidate #3: https://www.tasteofhome.com/recipes/one-pot-spinach-beef-soup/
+    → Candidate #4: https://www.tasteofhome.com/recipes/crescent-turkey-casserole/
+    → Candidate #5: https://www.tasteofhome.com/recipes/barbecue-chicken-quesadillas/
+    ✓ Strategy 2 SUCCESS: Found 5 recipe links on collection page
+    ✓ Found 5 recipe links on collection page
+→ Scraping: https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sand...
+[FETCH]... ↓ https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sandwiches/
+| ✓ | ⏱: 1.60s 
+[SCRAPE].. ◆ https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sandwiches/
+| ✓ | ⏱: 0.04s 
+[COMPLETE] ● https://www.tasteofhome.com/recipes/bacon-swiss-chicken-sandwiches/
+| ✓ | ⏱: 1.65s 
+      ✅ Chicken Bacon Swiss Sandwich
+→ Scraping: https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-f...
+[FETCH]... ↓ https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-fry/    
+| ✓ | ⏱: 1.42s 
+[SCRAPE].. ◆ https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-fry/    
+| ✓ | ⏱: 0.04s 
+[COMPLETE] ● https://www.tasteofhome.com/recipes/spicy-beef-pepper-stir-fry/    
+| ✓ | ⏱: 1.46s 
+      ✅ Spicy Beef Stir Fry
+→ Scraping: https://www.tasteofhome.com/recipes/one-pot-spinach-beef-sou...
+[FETCH]... ↓ https://www.tasteofhome.com/recipes/one-pot-spinach-beef-soup/     
+| ✓ | ⏱: 1.42s 
+[SCRAPE].. ◆ https://www.tasteofhome.com/recipes/one-pot-spinach-beef-soup/     
+| ✓ | ⏱: 0.04s 
+[COMPLETE] ● https://www.tasteofhome.com/recipes/one-pot-spinach-beef-soup/     
+| ✓ | ⏱: 1.47s 
+INFO:httpx:HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+INFO:CulinaraAI:🌐 Using web search results
+INFO:CulinaraAI:✅ Using 3 pre-scraped recipes from orchestrator
+INFO:CulinaraAI:  ✅ Added recipe: Chicken Bacon Swiss Sandwich
+INFO:CulinaraAI:  ✅ Added recipe: Spicy Beef Stir Fry
+INFO:CulinaraAI:  ✅ Added recipe: Spinach Beef Soup
+INFO:CulinaraAI:💡 Generated 0 culinary facts
+WARNING:CulinaraAI:⚠️ No facts generated for this query!
+INFO:CulinaraAI:📤 Sending response with 0 facts
+      ✅ Spinach Beef Soup
+    ✓ Successfully extracted 3 recipes from collection page
+  → Limited to 3 recipes for recommendation
+  → Generating culinary facts...
+    📋 Context length: 5983 characters
+    🔍 Context preview: Recipe Sources Found Online:
+
+1. 92 Dinner Ideas You Can Make in a Flash | Taste of Home
+   URL: //duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.tasteofhome.com%2Fcollection%2Fdinner%2Dideas%2F&rut=2f54f43...
+    🔄 Calling Groq API for facts generation...
+    ⚠️ Groq facts generation error: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01jnq2dh9gfdc8ka3sdf28hwr7` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99456, Requested 2053. Please try again in 21m43.775999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+    🔄 Calling Gemini API for facts generation...
+    ⚠️ Gemini facts generation error: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash-exp
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash-exp
+Please retry in 11.579990885s. [links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash-exp"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+}
+, retry_delay {
+  seconds: 11
+}
+]
+    ⚠️ All LLM attempts failed, no facts available
+  ✓ Generated 0 facts
+  ✓ Web search complete
+
+🔀 Combining Results...
+  ✓ Using results from: internet (web search fallback)
+INFO:     127.0.0.1:58117 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:watchfiles.main:3 changes detected
+WARNING:  WatchFiles detected changes in 'services/mcp_orchestrator.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1911]
+INFO:watchfiles.main:1 change detected
+/Users/Lenovo/Desktop/Education/CulinaraAI/backend/rag_engine.py:5: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:watchfiles.main:3 changes detected
+INFO:CulinaraAI:📦 Serving frontend from /Users/Lenovo/Desktop/Education/CulinaraAI/frontend/dist
+INFO:CulinaraAI:📦 Serving frontend from /Users/Lenovo/Desktop/Education/CulinaraAI/frontend/dist
+INFO:     Started server process [3286]
+INFO:     Waiting for application startup.
+INFO:CulinaraAI:🚀 Initializing CulinaraAI RAG Engine
+INFO:CulinaraAI:📁 Found ChromaDB at: /Users/Lenovo/Desktop/Education/CulinaraAI/backend/data/chroma_db
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:CulinaraAI:📊 Collection has 296 recipes
+INFO:CulinaraAI:✅ RAG Engine ready with ChromaDB
+INFO:CulinaraAI:✅ MCP Orchestrator ready
+INFO:     Application startup complete.
+INFO:watchfiles.main:6 changes detected
+INFO:watchfiles.main:3 changes detected
+INFO:watchfiles.main:3 changes detected
