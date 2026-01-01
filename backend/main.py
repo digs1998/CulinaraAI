@@ -64,44 +64,66 @@ async def startup():
     logger.info("🚀 Initializing CulinaraAI RAG Engine")
 
     try:
-        from chromadb import PersistentClient
+        # Check if Supabase is configured (new architecture)
+        use_supabase = os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY")
 
-        # Try multiple possible paths where ChromaDB might exist
-        possible_paths = [
-            Path(__file__).parent / "chroma_db",
-            Path(__file__).parent / "data" / "chroma_db",
-            Path(__file__).parent.parent / "backend" / "chroma_db",
-        ]
-        
-        chroma_dir = None
-        for path in possible_paths:
-            if path.exists() and (path / "chroma.sqlite3").exists():
-                chroma_dir = path
-                logger.info(f"📁 Found ChromaDB at: {chroma_dir}")
-                break
-        
-        if not chroma_dir:
-            # Default to first option and create it
-            chroma_dir = possible_paths[0]
-            chroma_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(f"📁 Creating new ChromaDB at: {chroma_dir}")
-        
-        # Use PersistentClient for reliability
-        chroma_client = PersistentClient(path=str(chroma_dir))
+        if use_supabase:
+            # NEW: Use Supabase with pgvector
+            logger.info("📊 Using Supabase PostgreSQL + pgvector")
+            from rag_engine_supabase import SupabaseRAGEngine
 
-        collection = chroma_client.get_or_create_collection("recipes")
-        
-        recipe_count = collection.count()
-        logger.info(f"📊 Collection has {recipe_count} recipes")
-        
-        if recipe_count == 0:
-            logger.warning("⚠️  ChromaDB collection is empty! Run ingestion script first.")
-        
-        rag_engine = RecipeRAGEngine(chroma_collection=collection)
+            rag_engine = SupabaseRAGEngine()
 
-        logger.info("✅ RAG Engine ready with ChromaDB")
+            # Get recipe count from Supabase
+            stats = rag_engine.get_statistics()
+            logger.info(f"📊 Supabase has {stats['total_recipes']} recipes, {stats['total_embeddings']} embeddings")
 
-        # Initialize MCP Orchestrator
+            if stats['total_recipes'] == 0:
+                logger.warning("⚠️  Supabase has no recipes! Run GitHub Actions scraper or scripts/scrape_recipes.py")
+
+            logger.info("✅ RAG Engine ready with Supabase")
+
+        else:
+            # OLD: Fall back to ChromaDB (backward compatibility)
+            logger.info("📊 Using ChromaDB (legacy mode - consider migrating to Supabase)")
+            from chromadb import PersistentClient
+
+            # Try multiple possible paths where ChromaDB might exist
+            possible_paths = [
+                Path(__file__).parent / "chroma_db",
+                Path(__file__).parent / "data" / "chroma_db",
+                Path(__file__).parent.parent / "backend" / "chroma_db",
+            ]
+
+            chroma_dir = None
+            for path in possible_paths:
+                if path.exists() and (path / "chroma.sqlite3").exists():
+                    chroma_dir = path
+                    logger.info(f"📁 Found ChromaDB at: {chroma_dir}")
+                    break
+
+            if not chroma_dir:
+                # Default to first option and create it
+                chroma_dir = possible_paths[0]
+                chroma_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(f"📁 Creating new ChromaDB at: {chroma_dir}")
+
+            # Use PersistentClient for reliability
+            chroma_client = PersistentClient(path=str(chroma_dir))
+
+            collection = chroma_client.get_or_create_collection("recipes")
+
+            recipe_count = collection.count()
+            logger.info(f"📊 Collection has {recipe_count} recipes")
+
+            if recipe_count == 0:
+                logger.warning("⚠️  ChromaDB collection is empty! Run ingestion script first.")
+
+            rag_engine = RecipeRAGEngine(chroma_collection=collection)
+
+            logger.info("✅ RAG Engine ready with ChromaDB")
+
+        # Initialize MCP Orchestrator (works with both engines)
         from services.mcp_tools import MCPRecipeTools
         mcp_tools = MCPRecipeTools()
         mcp_orchestrator = MCPOrchestrator(rag_engine=rag_engine, mcp_tools=mcp_tools)
