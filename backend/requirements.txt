@@ -31,3 +31,8 @@ tqdm
 sentence-transformers
 openai
 groq
+
+# Database (Supabase)
+supabase
+psycopg2-binary
+pgvector
