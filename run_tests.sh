@@ -36,6 +36,7 @@ echo ""
 echo "=========================================="
 echo "Test 1: Installing Dependencies"
 echo "=========================================="
+pip install -q python-dotenv psycopg2-binary
 cd backend
 pip install -q -r requirements.txt
 cd ..
@@ -43,7 +44,14 @@ echo "✅ Dependencies installed"
 
 echo ""
 echo "=========================================="
-echo "Test 2: Supabase Connection"
+echo "Test 2: Running Database Migration"
+echo "=========================================="
+python3 migrate_supabase.py
+echo "✅ Migration complete"
+
+echo ""
+echo "=========================================="
+echo "Test 3: Supabase Connection"
 echo "=========================================="
 python3 << 'EOF'
 import os
@@ -81,7 +89,7 @@ EOF
 
 echo ""
 echo "=========================================="
-echo "Test 3: Database Schema Check"
+echo "Test 4: Database Schema Verification"
 echo "=========================================="
 python3 << 'EOF'
 import os
@@ -110,39 +118,36 @@ try:
     except:
         print("  ⚠️  'get_database_stats' function not found (non-critical)")
 
-    print("✅ Test 3 PASSED - Database schema is set up correctly")
+    print("✅ Test 4 PASSED - Database schema is set up correctly")
 
 except Exception as e:
     print(f"  ❌ Schema check failed: {e}")
     print("")
-    print("  💡 You need to run the database migration!")
-    print("     1. Go to Supabase Dashboard → SQL Editor")
-    print("     2. Create new query")
-    print("     3. Copy/paste contents of: supabase/migrations/001_initial_schema.sql")
-    print("     4. Click 'Run'")
-    print("     5. Re-run this test script")
+    print("  💡 Migration might have failed!")
+    print("     Try running manually: python3 migrate_supabase.py")
+    print("     Check .env.test has correct SUPABASE_DATABASE_URL")
     exit(1)
 EOF
 
 echo ""
 echo "=========================================="
-echo "Test 4: Recipe Scraper (adds ~50 recipes)"
+echo "Test 5: Recipe Scraper (adds ~50 recipes)"
 echo "=========================================="
 echo "  This will take ~2-3 minutes..."
 python3 scripts/scrape_recipes.py
-echo "✅ Test 4 PASSED"
-
-echo ""
-echo "=========================================="
-echo "Test 5: Embedding Generation"
-echo "=========================================="
-echo "  This will take ~3-5 minutes depending on recipe count..."
-python3 scripts/generate_embeddings.py
 echo "✅ Test 5 PASSED"
 
 echo ""
 echo "=========================================="
-echo "Test 6: Backend Startup with Supabase"
+echo "Test 6: Embedding Generation"
+echo "=========================================="
+echo "  This will take ~3-5 minutes depending on recipe count..."
+python3 scripts/generate_embeddings.py
+echo "✅ Test 6 PASSED"
+
+echo ""
+echo "=========================================="
+echo "Test 7: Backend Startup with Supabase"
 echo "=========================================="
 echo "  Starting backend in background..."
 
@@ -180,11 +185,11 @@ else
     exit 1
 fi
 
-echo "✅ Test 6 PASSED"
+echo "✅ Test 7 PASSED"
 
 echo ""
 echo "=========================================="
-echo "Test 7: Recipe Search API"
+echo "Test 8: Recipe Search API"
 echo "=========================================="
 echo "  Starting backend for API test..."
 
@@ -227,11 +232,11 @@ fi
 kill $BACKEND_PID 2>/dev/null || true
 wait $BACKEND_PID 2>/dev/null || true
 
-echo "✅ Test 7 PASSED"
+echo "✅ Test 8 PASSED"
 
 echo ""
 echo "=========================================="
-echo "Test 8: Backward Compatibility (ChromaDB)"
+echo "Test 9: Backward Compatibility (ChromaDB)"
 echo "=========================================="
 echo "  Testing fallback to ChromaDB when Supabase not configured..."
 
@@ -259,7 +264,7 @@ fi
 kill $BACKEND_PID 2>/dev/null || true
 cd ..
 
-echo "✅ Test 8 PASSED"
+echo "✅ Test 9 PASSED"
 
 echo ""
 echo "=========================================="
