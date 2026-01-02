@@ -1,5 +1,6 @@
-# Environment variables
+# Environment variables (contains credentials - never commit!)
 .env
+.env.test
 .env.local
 .env.*.local
 
