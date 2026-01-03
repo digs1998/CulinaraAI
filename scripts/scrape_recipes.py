@@ -16,6 +16,9 @@ from psycopg2.extras import Json
 from datetime import datetime
 from typing import List, Dict
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def connect_db():
     """Connect to Supabase PostgreSQL"""
@@ -285,10 +288,10 @@ def main():
 
     # Scrape from multiple free sources
     # TheMealDB: Free, unlimited
-    all_recipes.extend(scrape_themealdb(num_recipes=50))
+    all_recipes.extend(scrape_themealdb(num_recipes=1500))
 
     # Spoonacular: 150 calls/day free tier (optional)
-    all_recipes.extend(scrape_spoonacular(num_recipes=40))
+    all_recipes.extend(scrape_spoonacular(num_recipes=1500))
 
     # Insert into database
     if all_recipes:

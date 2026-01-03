@@ -6,6 +6,9 @@ Reads SQL from migration file and executes it on Supabase PostgreSQL
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
+from dotenv import load_dotenv
+load_dotenv(".env")
 
 def run_migration():
     """
@@ -17,18 +20,13 @@ def run_migration():
     print()
 
     # Check if .env.test exists
-    if not Path(".env.test").exists():
-        print("❌ Error: .env.test file not found!")
+    if not Path(".env").exists():
+        print("❌ Error: .env file not found!")
         print()
         print("Please create .env.test and fill in your credentials:")
         print("  - SUPABASE_DATABASE_URL")
         print()
         sys.exit(1)
-
-    # Load environment variables from .env.test
-    from dotenv import load_dotenv
-    load_dotenv(".env.test")
-
     # Get database URL
     db_url = os.getenv("SUPABASE_DATABASE_URL")
 

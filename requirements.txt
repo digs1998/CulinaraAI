@@ -31,3 +31,5 @@ tqdm
 sentence-transformers
 openai
 groq
+psycopg2-binary
+supabase

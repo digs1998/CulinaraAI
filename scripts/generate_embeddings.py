@@ -12,6 +12,9 @@ import psycopg2
 from typing import List, Tuple
 import time
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def connect_db():
     """Connect to Supabase PostgreSQL"""
