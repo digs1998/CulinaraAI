@@ -270,10 +270,17 @@ def get_database_stats():
         return None, None
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Scrape recipes from free APIs')
+    parser.add_argument('--count', type=int, default=50, help='Number of recipes to scrape per source (default: 50)')
+    args = parser.parse_args()
+
     print("=" * 70)
     print("🚀 CULINARA AI - DAILY RECIPE SCRAPER")
     print("=" * 70)
     print(f"📅 Run time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    print(f"🎯 Target: {args.count} recipes per source")
     print()
 
     # Get current stats
@@ -285,10 +292,12 @@ def main():
 
     # Scrape from multiple free sources
     # TheMealDB: Free, unlimited
-    all_recipes.extend(scrape_themealdb(num_recipes=50))
+    themealdb_count = min(args.count, 100)  # Cap at 100 to avoid excessive API calls
+    all_recipes.extend(scrape_themealdb(num_recipes=themealdb_count))
 
     # Spoonacular: 150 calls/day free tier (optional)
-    all_recipes.extend(scrape_spoonacular(num_recipes=40))
+    spoonacular_count = min(args.count, 40)  # Cap at 40 to stay within free tier
+    all_recipes.extend(scrape_spoonacular(num_recipes=spoonacular_count))
 
     # Insert into database
     if all_recipes:

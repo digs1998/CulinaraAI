@@ -9,7 +9,29 @@ if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
     echo "📊 Supabase detected - using cloud PostgreSQL + pgvector"
     echo "   URL: $SUPABASE_URL"
     echo "✅ Skipping ChromaDB setup (data is in Supabase)"
-    echo "💡 No ingestion needed on deployment - data persists in cloud!"
+
+    # Auto-run database migration on first deployment
+    echo "🔄 Checking if database tables exist..."
+    if python -c "
+import os
+import psycopg2
+try:
+    conn = psycopg2.connect(os.getenv('SUPABASE_DATABASE_URL'))
+    cur = conn.cursor()
+    cur.execute(\"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'recipes')\")
+    exists = cur.fetchone()[0]
+    exit(0 if exists else 1)
+except Exception as e:
+    print(f'Error checking tables: {e}')
+    exit(1)
+"; then
+        echo "✅ Database tables already exist"
+    else
+        echo "📋 Running database migration (first deployment)..."
+        python migrate_supabase.py || echo "⚠️ Migration failed - tables may already exist"
+    fi
+
+    echo "💡 No ingestion needed on deployment - GitHub Actions handles daily scraping!"
 
 else
     echo "📊 Supabase not configured - using ChromaDB (legacy mode)"

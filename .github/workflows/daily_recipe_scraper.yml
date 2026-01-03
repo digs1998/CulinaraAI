@@ -28,22 +28,32 @@ jobs:
       - name: Scrape recipes from free APIs
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SPOONACULAR_API_KEY: ${{ secrets.SPOONACULAR_API_KEY }}
         run: |
-          python scripts/scrape_recipes.py
+          echo "🔍 Scraping recipes from TheMealDB and Spoonacular..."
+          python scripts/scrape_recipes.py --count 50
 
       - name: Generate embeddings for new recipes
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          echo "🧠 Generating embeddings with Gemini..."
           python scripts/generate_embeddings.py
 
-      - name: Report status
+      - name: Report statistics
         if: always()
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ Recipe scraping completed successfully"
-          else
-            echo "❌ Recipe scraping failed - check logs"
-            exit 1
-          fi
+          python -c "
+import os
+import psycopg2
+conn = psycopg2.connect(os.getenv('SUPABASE_DATABASE_URL'))
+cur = conn.cursor()
+cur.execute('SELECT COUNT(*) FROM recipes')
+recipe_count = cur.fetchone()[0]
+cur.execute('SELECT COUNT(*) FROM recipe_embeddings')
+embedding_count = cur.fetchone()[0]
+print(f'✅ Scraping completed! Database now has {recipe_count} recipes, {embedding_count} embeddings')
+"
