@@ -47,6 +47,6 @@ htmlcov/
 *.json.bak
 backend/services/__pycache__
 recipes.db
-chroma_db/
+chroma_db/  # Legacy - no longer used (app uses Supabase)
 .claude
 frontend/node_modules

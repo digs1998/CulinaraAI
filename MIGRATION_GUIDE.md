@@ -1,17 +1,23 @@
 # Migration Guide: ChromaDB → Supabase
 
+> **⚠️ MIGRATION COMPLETE - ChromaDB REMOVED**
+>
+> As of the latest version, CulinaraAI uses **Supabase exclusively**. ChromaDB support has been removed.
+>
+> This document is kept for historical reference. For current setup instructions, see [SETUP_GUIDE.md](SETUP_GUIDE.md) or [README.md](README.md).
+
 ## Overview
 
-This guide walks you through migrating your CulinaraAI backend from ChromaDB (ephemeral storage) to Supabase (persistent storage with pgvector).
+This guide documents the migration of CulinaraAI from ChromaDB to Supabase.
 
-**Benefits:**
+**Migration Benefits:**
 - ✅ No re-ingestion on deployment (20 min → <1 min)
 - ✅ Data persists across Railway restarts
 - ✅ Scales to millions of recipes
 - ✅ Better performance with pgvector
 - ✅ Built-in backup & replication
 
-**Status:** Backend code is now **backwards compatible** - it automatically uses Supabase if configured, otherwise falls back to ChromaDB.
+**Status:** Migration complete - Supabase is now the only supported database.
 
 ---
 

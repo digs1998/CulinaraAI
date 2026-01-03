@@ -19,11 +19,11 @@
 
 CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary assistant** that combines:
 
-- 🧠 **Dual-Pipeline RAG Architecture** - Searches local vector database first, falls back to intelligent web scraping
+- 🧠 **Dual-Pipeline RAG Architecture** - Searches Supabase vector database first, falls back to intelligent web scraping
 - 🤖 **Multi-LLM Orchestration** - Uses Groq (Llama 3.3 70B) and Google Gemini for optimal performance
 - 🕷️ **Advanced Web Scraping** - Powered by Crawl4AI and MCP (Model Context Protocol) for real-time recipe extraction
 - 🎨 **Beautiful, Immersive UI** - Animated welcome screen, smooth transitions, and intuitive design
-- ⚡ **Blazing Fast** - ChromaDB vector search with semantic similarity matching
+- ⚡ **Blazing Fast** - Supabase PostgreSQL + pgvector for semantic similarity search
 - 📚 **Educational Facts** - LLM-generated "Did you know?" culinary trivia for every search
 - 🔄 **Hot Reload Development** - Live updates for both frontend and backend during development
 
@@ -35,11 +35,11 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
 
 - **Smart Recipe Search**: Natural language queries like "healthy pasta recipes" or "vegan desserts"
 - **Dual-Source Intelligence**:
-  - Primary: Vector database with 500k+ embedded recipes (ChromaDB + Pinecone)
+  - Primary: Supabase PostgreSQL + pgvector with embedded recipes
   - Fallback: Real-time web scraping from top recipe sites
 - **LLM-Powered Summaries**: Friendly, conversational recipe introductions
 - **Dynamic Facts Generation**: Learn interesting trivia about ingredients with every search
-- **Similarity Scoring**: Advanced semantic search with keyword boosting
+- **Similarity Scoring**: Advanced semantic search with pgvector similarity
 - **Recipe Context**: Full ingredients, instructions, prep/cook time, servings, and more
 
 ### 🚀 Advanced Features
@@ -67,8 +67,8 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
 
 ### Backend Powerhouse
 - **FastAPI** - Lightning-fast async Python web framework
-- **ChromaDB** - Vector database for semantic recipe search
-- **Pinecone** - Cloud vector database for scalability
+- **Supabase** - PostgreSQL database with pgvector extension
+- **pgvector** - Vector similarity search in PostgreSQL
 - **Groq API** - Ultra-fast LLM inference (Llama 3.3 70B)
 - **Google Gemini** - Advanced LLM for summaries and facts
 - **Crawl4AI** - Intelligent web crawler for recipe extraction
@@ -101,9 +101,10 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
 
 - Python 3.11 or higher
 - Node.js 20 or higher (LTS recommended)
+- Supabase account and project (for database)
 - API Keys:
+  - [Supabase URL and Key](https://supabase.com/)
   - [Google Gemini API Key](https://ai.google.dev/)
-  - [Pinecone API Key](https://www.pinecone.io/)
   - [Groq API Key](https://console.groq.com/)
 
 ### 📦 Installation
@@ -122,8 +123,9 @@ cp .env.example .env
 
 Edit `.env` and add your API keys:
 ```env
+SUPABASE_URL='your-supabase-project-url'
+SUPABASE_KEY='your-supabase-anon-key'
 GEMINI_API_KEY='your-gemini-api-key-here'
-PINECONE_API_KEY='your-pinecone-api-key-here'
 GROQ_API_KEY='your-groq-api-key-here'
 
 PORT=8000
@@ -216,51 +218,33 @@ docker exec -it culinara-frontend sh
 
 ---
 
-## 🗄️ Data Collection & Ingestion
+## 🗄️ Data Management
 
-### How Recipe Data is Collected
+### How Recipe Data is Stored
 
-CulinaraAI uses a **sophisticated multi-source data pipeline**:
+CulinaraAI uses **Supabase PostgreSQL with pgvector** for persistent, scalable storage:
 
-#### 1. **Web Scraping with Crawl4AI**
-- 🕷️ **Intelligent Crawler**: Uses Crawl4AI for JavaScript-rendered pages
-- 🎯 **Targeted Extraction**: Focuses on recipe-specific sites
-- 📝 **Structured Parsing**: Extracts ingredients, instructions, metadata
-- 🔄 **Rate Limiting**: Respectful crawling with delays
+#### **Supabase Database Architecture**
+- 🗄️ **PostgreSQL**: Reliable, ACID-compliant relational database
+- 🔍 **pgvector Extension**: Efficient vector similarity search
+- 🧮 **Embeddings**: Google Generative AI text embeddings (768 dimensions)
+- ☁️ **Cloud-Native**: Data persists across deployments
+- 🚀 **Scalable**: No re-ingestion needed on redeploys
 
-#### 2. **Recipe Processing**
-- 📄 **JSONL Format**: Recipes stored in JSON Lines for efficient processing
-- ✂️ **Smart Chunking**: Splits large recipes into semantic chunks
-- 🧮 **Embedding Generation**: Google Generative AI creates vector embeddings
-- 💾 **Vector Storage**: ChromaDB (local) + Pinecone (cloud)
-
-#### 3. **Data Sources**
-- Recipe websites (via web scraping)
-- User-contributed recipes
+#### **Data Sources**
+- Recipe websites (via web scraping with GitHub Actions)
+- Real-time web scraping fallback
 - API integrations (future)
 
-### Running Data Ingestion
+### Database Setup
 
-```bash
-cd backend
+The database is managed in Supabase with:
+- `recipes` table for recipe data
+- `search_recipes()` RPC function for vector similarity search
+- `get_database_stats()` RPC function for statistics
+- Automatic embedding generation via scraper scripts
 
-# Option 1: Full ingestion pipeline
-python data/run_ingestion.py
-
-# Option 2: Web scraping only
-python data/scrape/foodScrapper.py
-
-# Option 3: Generate embeddings
-python data/scrape/generateEmbeddings.py
-```
-
-**What happens:**
-1. 📥 Scrapes recipe URLs from target sites
-2. 🔍 Extracts recipe data (ingredients, instructions, facts)
-3. ✂️ Chunks recipes into smaller semantic units
-4. 🧮 Generates embeddings using Google AI
-5. 💾 Stores in ChromaDB and Pinecone
-6. ✅ Ready for semantic search!
+**For data ingestion, see the GitHub Actions workflows or run scraper scripts manually.**
 
 ---
 
@@ -277,10 +261,10 @@ python data/scrape/generateEmbeddings.py
 ┌─────────────────────────────────────────────────────────────┐
 │                   MCP Orchestrator                           │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  Step 1: RAG Database Search (ChromaDB/Pinecone)   │    │
+│  │  Step 1: RAG Database Search (Supabase + pgvector) │    │
 │  │  • Semantic similarity search                       │    │
-│  │  • Keyword matching boost                           │    │
-│  │  • Threshold filtering (>0.50 similarity)          │    │
+│  │  • Vector distance calculation                      │    │
+│  │  • Threshold filtering (>0.35 similarity)          │    │
 │  └─────────────────────────┬───────────────────────────┘    │
 │                            │                                 │
 │                            ▼                                 │
@@ -365,7 +349,7 @@ CulinaraAI/
 │   │   └── scrape/
 │   │       ├── foodScrapper.py      # Web crawler (Crawl4AI)
 │   │       └── generateEmbeddings.py # Embedding generation
-│   ├── chroma_db/                   # ChromaDB storage
+│   ├── rag_engine_supabase.py      # Supabase RAG engine
 │   ├── requirements.txt             # Python dependencies
 │   ├── Dockerfile                   # Backend container
 │   └── .dockerignore                # Docker ignore rules
@@ -474,8 +458,9 @@ npm run preview
 
 | Variable | Description | Required |
 |----------|-------------|----------|
+| `SUPABASE_URL` | Supabase project URL | ✅ Yes |
+| `SUPABASE_KEY` | Supabase anon/service key | ✅ Yes |
 | `GEMINI_API_KEY` | Google Gemini API key | ✅ Yes |
-| `PINECONE_API_KEY` | Pinecone vector DB key | ✅ Yes |
 | `GROQ_API_KEY` | Groq LLM API key | ✅ Yes |
 | `PORT` | Backend port (default: 8000) | ❌ No |
 | `ALLOWED_ORIGINS` | CORS allowed origins | ❌ No |
@@ -490,14 +475,16 @@ npm run preview
 
 The project includes a **multi-stage Dockerfile** that builds both frontend and backend into a single container on port 8080:
 
-1. **Push to GitHub**
-2. **Connect to Railway** - Import your repo
-3. **Add Environment Variables**:
+1. **Set up Supabase** - Create a project and set up the database schema
+2. **Push to GitHub**
+3. **Connect to Railway** - Import your repo
+4. **Add Environment Variables**:
+   - `SUPABASE_URL`
+   - `SUPABASE_KEY`
    - `GEMINI_API_KEY`
-   - `PINECONE_API_KEY`
    - `GROQ_API_KEY`
    - `ENVIRONMENT=production`
-4. **Deploy** - Railway auto-detects the Dockerfile and builds everything
+5. **Deploy** - Railway auto-detects the Dockerfile and builds everything
 
 The backend serves the frontend static files automatically! ✨
 
@@ -511,11 +498,11 @@ docker-compose up --build
 **Backend (Railway):**
 1. Deploy `backend/` folder only
 2. Port 8080 (automatic)
-3. **IMPORTANT**: Create a volume at `/data` for ChromaDB persistence
-4. Set environment variables:
-   - `RUN_INGESTION=true` (for first deployment only)
-   - All API keys (GEMINI_API_KEY, etc.)
-5. After first successful ingestion, set `RUN_INGESTION=false`
+3. Set environment variables:
+   - `SUPABASE_URL` - Your Supabase project URL
+   - `SUPABASE_KEY` - Your Supabase anon key
+   - All API keys (GEMINI_API_KEY, GROQ_API_KEY)
+4. No volume needed - data persists in Supabase!
 
 **Frontend (Vercel/Netlify):**
 1. Deploy `frontend/` folder
@@ -551,8 +538,7 @@ MIT License - feel free to use this project for learning and commercial purposes
 - **Groq** - For blazing-fast LLM inference
 - **Google Gemini** - For powerful AI capabilities
 - **Crawl4AI** - For intelligent web scraping
-- **ChromaDB** - For local vector storage
-- **Pinecone** - For scalable vector search
+- **Supabase** - For PostgreSQL database and pgvector
 - **FastAPI** - For the amazing web framework
 - **React Team** - For the UI library
 

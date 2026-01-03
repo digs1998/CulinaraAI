@@ -58,15 +58,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install firefox
 RUN playwright install-deps firefox
 
-# Copy backend code (includes chroma_db if it exists)
+# Copy backend code
 COPY backend/ .
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 
-# If chroma_db exists locally, it will be copied above
-# The app will use web search fallback if ChromaDB is empty
-# Or set RUN_INGESTION=true in Railway to populate at startup
+# App uses Supabase PostgreSQL + pgvector for persistent storage
+# No local database setup required - all data is in Supabase
 
 # Make startup script executable
 RUN chmod +x /app/startup.sh
