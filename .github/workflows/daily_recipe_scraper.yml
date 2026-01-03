@@ -46,4 +46,4 @@ jobs:
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
-          python -c "import os; import psycopg2; conn = psycopg2.connect(os.getenv('SUPABASE_DATABASE_URL')); cur = conn.cursor(); cur.execute('SELECT COUNT(*) FROM recipes'); recipe_count = cur.fetchone()[0]; cur.execute('SELECT COUNT(*) FROM recipe_embeddings'); embedding_count = cur.fetchone()[0]; print(f'✅ Scraping completed! Database now has {recipe_count} recipes, {embedding_count} embeddings')"
+          python scripts/report_stats.py
