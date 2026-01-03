@@ -10,9 +10,7 @@ pydantic[email]
 google-generativeai
 langchain
 langchain-google-genai
-chromadb
 langchain-core
-pinecone-client
 
 # Web Scraping
 beautifulsoup4

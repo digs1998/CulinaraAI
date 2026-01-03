@@ -54,7 +54,7 @@ LICENSE
 # CI/CD
 .github/
 
-# ChromaDB - exclude from Docker builds (will be created at runtime or via volume)
+# ChromaDB (legacy - no longer used, app now uses Supabase)
 chroma_db/
 
 # Claude
