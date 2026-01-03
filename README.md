@@ -1,4 +1,4 @@
-# 🍳 CulinaraAI - Your AI-Powered Culinary Companion
+# CulinaraAI - Your AI-Powered Culinary Companion
 
 <div align="center">
 
@@ -15,25 +15,25 @@
 
 ---
 
-## 🌟 What Makes CulinaraAI Special?
+## What Makes CulinaraAI Special?
 
 CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary assistant** that combines:
 
-- 🧠 **Dual-Pipeline RAG Architecture** - Searches Supabase vector database first, falls back to intelligent web scraping
-- 🤖 **Multi-LLM Orchestration** - Uses Groq (Llama 3.3 70B) and Google Gemini for optimal performance
-- 🕷️ **Advanced Web Scraping** - Powered by Crawl4AI and MCP (Model Context Protocol) for real-time recipe extraction
-- 🎨 **Beautiful, Immersive UI** - Animated welcome screen, smooth transitions, and intuitive design
-- ⚡ **Blazing Fast** - Supabase PostgreSQL + pgvector for semantic similarity search
-- 📚 **Educational Facts** - LLM-generated "Did you know?" culinary trivia for every search
-- 🔄 **Hot Reload Development** - Live updates for both frontend and backend during development
+- **Dual-Pipeline RAG Architecture** - Searches Supabase vector database first, falls back to intelligent web scraping
+- **Multi-LLM Orchestration** - Uses Groq (Llama 3.3 70B) and Google Gemini for optimal performance
+- **Advanced Web Scraping** - Powered by Crawl4AI and MCP (Model Context Protocol) for real-time recipe extraction
+- **Beautiful, Immersive UI** - Animated welcome screen, smooth transitions, and intuitive design
+- **Blazing Fast** - Supabase PostgreSQL + pgvector for semantic similarity search
+- **Educational Facts** - LLM-generated "Did you know?" culinary trivia for every search
+- **Hot Reload Development** - Live updates for both frontend and backend during development
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎯 Core Capabilities
+### Core Capabilities
 
-- **Smart Recipe Search**: Natural language queries like "healthy pasta recipes" or "vegan desserts"
+- **Smart Recipe Search**: Natural language queries like "healthy pasta recipes" or "vegan desserts."
 - **Dual-Source Intelligence**:
   - Primary: Supabase PostgreSQL + pgvector with embedded recipes
   - Fallback: Real-time web scraping from top recipe sites
@@ -42,7 +42,7 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
 - **Similarity Scoring**: Advanced semantic search with pgvector similarity
 - **Recipe Context**: Full ingredients, instructions, prep/cook time, servings, and more
 
-### 🚀 Advanced Features
+### Advanced Features
 
 - **Multi-LLM Fallback Chain**: Groq → Gemini → Graceful degradation
 - **MCP Integration**: Model Context Protocol for structured recipe scraping
@@ -52,18 +52,18 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
 - **Docker Support**: One-command deployment with hot reload
 - **Responsive Design**: Works beautifully on desktop, tablet, and mobile
 
-### 🎨 User Experience
+### User Experience
 
-- ✨ Animated floating food emojis
-- 🌈 Gradient text and modern design
-- 🎯 Quick-start recipe suggestions
-- 📱 Mobile-responsive interface
-- 🔄 Smooth loading states
-- 💬 Conversational AI responses
+- Animated floating food emojis
+- Gradient text and modern design
+- Quick-start recipe suggestions
+- Mobile-responsive interface
+- Smooth loading states
+- Conversational AI responses
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 ### Backend Powerhouse
 - **FastAPI** - Lightning-fast async Python web framework
@@ -95,7 +95,7 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -107,7 +107,7 @@ CulinaraAI isn't just another recipe app—it's a **next-generation AI culinary 
   - [Google Gemini API Key](https://ai.google.dev/)
   - [Groq API Key](https://console.groq.com/)
 
-### 📦 Installation
+### Installation
 
 #### 1. Clone the Repository
 ```bash
@@ -134,7 +134,7 @@ VITE_API_URL=http://localhost:8000
 ENVIRONMENT='development'
 ```
 
-### 🖥️ Running Locally (Development)
+### Running Locally (Development)
 
 #### Terminal 1: Backend (FastAPI + MCP Server)
 ```bash
@@ -157,8 +157,8 @@ pip install -r requirements.txt
 python main.py
 ```
 
-✅ Backend running at: **http://localhost:8000**
-📚 API Documentation: **http://localhost:8000/docs**
+Backend running at: **http://localhost:8000**
+API Documentation: **http://localhost:8000/docs**
 
 #### Terminal 2: Frontend (React + Vite)
 ```bash
@@ -172,11 +172,11 @@ npm install
 npm run dev
 ```
 
-✅ Frontend running at: **http://localhost:5173**
+Frontend running at: **http://localhost:5173**
 
 ---
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### One-Command Setup
 
@@ -190,12 +190,12 @@ docker-compose up -d --build
 
 ### What You Get
 
-- ✅ **Backend**: http://localhost:8000
-- ✅ **Frontend**: http://localhost:5173
-- ✅ **API Docs**: http://localhost:8000/docs
-- ✅ **Hot Reload**: Code changes auto-refresh
-- ✅ **Isolated Network**: Containers communicate securely
-- ✅ **Auto-Restart**: Services recover from crashes
+- **Backend**: http://localhost:8000
+- **Frontend**: http://localhost:5173
+- **API Docs**: http://localhost:8000/docs
+- **Hot Reload**: Code changes auto-refresh
+- **Isolated Network**: Containers communicate securely
+- **Auto-Restart**: Services recover from crashes
 
 ### Docker Commands
 
@@ -214,7 +214,7 @@ docker exec -it culinara-backend bash
 docker exec -it culinara-frontend sh
 ```
 
-📖 **All Docker commands and troubleshooting info is included above!**
+📖 **All Docker commands and troubleshooting info are included above!**
 
 ---
 
@@ -225,11 +225,11 @@ docker exec -it culinara-frontend sh
 CulinaraAI uses **Supabase PostgreSQL with pgvector** for persistent, scalable storage:
 
 #### **Supabase Database Architecture**
-- 🗄️ **PostgreSQL**: Reliable, ACID-compliant relational database
-- 🔍 **pgvector Extension**: Efficient vector similarity search
-- 🧮 **Embeddings**: Google Generative AI text embeddings (768 dimensions)
-- ☁️ **Cloud-Native**: Data persists across deployments
-- 🚀 **Scalable**: No re-ingestion needed on redeploys
+- **PostgreSQL**: Reliable, ACID-compliant relational database
+- **pgvector Extension**: Efficient vector similarity search
+- **Embeddings**: Google Generative AI text embeddings (768 dimensions)
+- **Cloud-Native**: Data persists across deployments
+- **Scalable**: No re-ingestion needed on redeploys
 
 #### **Data Sources**
 - Recipe websites (via web scraping with GitHub Actions)
@@ -248,7 +248,7 @@ The database is managed in Supabase with:
 
 ---
 
-## 🏛️ Architecture
+## Architecture
 
 ### System Overview
 
@@ -334,7 +334,7 @@ The database is managed in Supabase with:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 CulinaraAI/
@@ -374,7 +374,7 @@ CulinaraAI/
 
 ---
 
-## 🎯 API Endpoints
+## API Endpoints
 
 ### Main Endpoints
 
@@ -409,21 +409,21 @@ GET /health
 
 ---
 
-## 🧪 Example Queries
+## Example Queries
 
 Try these to see CulinaraAI in action:
 
-- "quick and easy dinner ideas"
-- "vegan desserts under 30 minutes"
-- "healthy breakfast recipes"
-- "pasta recipes with chicken"
-- "gluten-free meal prep"
-- "traditional Italian dishes"
-- "spicy Asian stir-fry"
+- "quick and easy dinner ideas."
+- "vegan desserts under 30 minutes."
+- "healthy breakfast recipes."
+- "pasta recipes with chicken."
+- "gluten-free meal prep."
+- "traditional Italian dishes."
+- "spicy Asian stir-fry."
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Backend Development
 ```bash
@@ -454,7 +454,7 @@ npm run preview
 
 ---
 
-## 🌐 Environment Variables
+## Environment Variables
 
 | Variable | Description | Required |
 |----------|-------------|----------|
@@ -469,7 +469,7 @@ npm run preview
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Railway (Full-Stack Single Service)
 
@@ -486,7 +486,7 @@ The project includes a **multi-stage Dockerfile** that builds both frontend and 
    - `ENVIRONMENT=production`
 5. **Deploy** - Railway auto-detects the Dockerfile and builds everything
 
-The backend serves the frontend static files automatically! ✨
+The backend automatically serves the frontend's static files.
 
 ### Docker (Local Development)
 ```bash
@@ -509,7 +509,7 @@ docker-compose up --build
 2. Build command: `npm run build`
 3. **REQUIRED**: Set `VITE_API_URL` environment variable to your Railway backend URL
    - Example: `https://your-app.up.railway.app`
-4. Redeploy after setting environment variable
+4. Redeploy after setting the environment variable
 
 📖 **Having deployment issues?** See [DEPLOYMENT_FIX.md](DEPLOYMENT_FIX.md) for detailed troubleshooting.
 
@@ -533,7 +533,7 @@ MIT License - feel free to use this project for learning and commercial purposes
 
 ---
 
-## 🙌 Acknowledgments
+## Acknowledgments
 
 - **Groq** - For blazing-fast LLM inference
 - **Google Gemini** - For powerful AI capabilities
@@ -555,7 +555,7 @@ Questions? Suggestions? Reach out!
 
 <div align="center">
 
-**Made with ❤️ and AI**
+**Made with ❤️**
 
 ⭐ **Star this repo if you found it helpful!** ⭐
 
