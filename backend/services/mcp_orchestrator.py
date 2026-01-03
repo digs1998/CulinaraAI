@@ -4,9 +4,10 @@ User Query → MCP Orchestrator → [RAG DB → Gemini LLM] + [Web Search → Ge
 """
 
 from typing import Dict, List, Optional
+import asyncio
 import google.generativeai as genai
 from groq import Groq
-from services.recipe_scraper_pipeline import scrape_recipe_via_mcp
+from services.recipe_scraper_pipeline import scrape_recipe_via_mcp, scrape_recipes_parallel
 
 class MCPOrchestrator:
     """Orchestrates RAG DB and Web Search pipelines with Groq/Gemini LLM"""
@@ -442,6 +443,14 @@ class MCPOrchestrator:
                                       'sausage', 'meat', 'seafood', 'prawn', 'shrimp', 'salmon', 'tuna',
                                       'duck', 'venison', 'steak', 'meatball', 'ham']
 
+        # Check if user has both non-vegetarian and low-carb preferences
+        has_non_veg = any(d.lower() in ['non-vegetarian', 'non vegetarian'] for d in diet_preferences)
+        has_low_carb = any(d.lower() in ['keto', 'low carb'] for d in diet_preferences)
+
+        # Check if recipe has meat (for combined preference handling)
+        has_meat = any(ingredient in ingredients.lower() or ingredient in title.lower()
+                      for ingredient in non_vegetarian_ingredients)
+
         # Check each dietary preference
         for diet in diet_preferences:
             diet_lower = diet.lower()
@@ -460,18 +469,29 @@ class MCPOrchestrator:
 
             elif diet_lower == 'non-vegetarian' or diet_lower == 'non vegetarian':
                 # For non-vegetarian, recipe MUST contain meat/fish
-                has_meat = any(ingredient in ingredients.lower() or ingredient in title.lower()
-                              for ingredient in non_vegetarian_ingredients)
                 if not has_meat:
                     return False  # Reject if no meat found
 
             elif diet_lower in ['keto', 'low carb']:
                 # Keto/low carb - avoid high-carb ingredients
+                # IMPORTANT: If user also selected Non-Vegetarian, be lenient on carbs
+                # Many meat dishes come with rice/pasta, and user wants meat primarily
                 high_carb = ['rice', 'pasta', 'bread', 'potato', 'noodle', 'flour', 'sugar']
-                # Allow if it doesn't have obvious high-carb ingredients
                 has_high_carb = any(carb in ingredients or carb in title for carb in high_carb)
-                if has_high_carb and not any(kw in title for kw in ['keto', 'low carb', 'cauliflower']):
-                    return False
+
+                # If user wants both non-veg AND low-carb, only reject very high-carb dishes without meat
+                if has_non_veg and has_low_carb:
+                    # For combined preference: allow meat dishes even with some carbs
+                    # Only reject if it's very high-carb (pasta/bread/noodles) AND explicitly vegetarian/vegan
+                    very_high_carb = ['pasta', 'bread', 'noodle', 'flour']
+                    is_very_high_carb = any(carb in ingredients.lower() or carb in title.lower() for carb in very_high_carb)
+                    if is_very_high_carb and not has_meat:
+                        if not any(kw in title.lower() for kw in ['keto', 'low carb', 'cauliflower']):
+                            return False
+                else:
+                    # Standard low-carb check (when NOT combined with non-veg)
+                    if has_high_carb and not any(kw in title for kw in ['keto', 'low carb', 'cauliflower']):
+                        return False
 
             elif diet_lower == 'gluten free':
                 # Gluten free - avoid wheat, barley, rye
@@ -604,21 +624,28 @@ class MCPOrchestrator:
             results = web_search_result["results"]
             print(f"  ✓ Found {len(results)} recipe sources online")
 
-            # Scrape recipe details for each URL
-            scraped_recipes = []
-            for idx, r in enumerate(results[:5], 1):
-                url = r.get("url")
-                if url:
-                    print(f"  [{idx}/5] Scraping: {url[:60]}...")
-                    try:
-                        recipe_data = scrape_recipe_via_mcp(url)
-                        if recipe_data and recipe_data.get("title") != "Could not fetch recipe":
-                            scraped_recipes.append(recipe_data)
-                            print(f"    ✓ Success: {recipe_data.get('title', 'Unknown')[:50]}")
-                        else:
-                            print(f"    ✗ Failed to extract recipe data")
-                    except Exception as e:
-                        print(f"    ✗ Error: {str(e)[:80]}")
+            # Scrape recipe details for each URL IN PARALLEL for faster performance
+            urls_to_scrape = [r.get("url") for r in results[:5] if r.get("url")]
+
+            print(f"  → Scraping {len(urls_to_scrape)} recipes in parallel...")
+            try:
+                # Use asyncio.run to execute parallel scraping
+                scraped_recipes = asyncio.run(scrape_recipes_parallel(urls_to_scrape))
+
+                # Filter out failed recipes
+                valid_recipes = []
+                for idx, recipe_data in enumerate(scraped_recipes, 1):
+                    if recipe_data and recipe_data.get("title") != "Could not fetch recipe":
+                        valid_recipes.append(recipe_data)
+                        print(f"  [{idx}] ✓ Success: {recipe_data.get('title', 'Unknown')[:50]}")
+                    else:
+                        print(f"  [{idx}] ✗ Failed to extract recipe data")
+
+                scraped_recipes = valid_recipes
+                print(f"  ✓ Successfully scraped {len(scraped_recipes)} recipes")
+            except Exception as e:
+                print(f"  ✗ Parallel scraping failed: {str(e)[:80]}")
+                scraped_recipes = []
 
             if scraped_recipes:
                 # Check for obvious collection indicators (MORE COMPREHENSIVE)

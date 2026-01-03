@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, List
 import asyncio
+import time
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -247,6 +248,10 @@ def health():
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
+    # Start timing
+    start_time = time.time()
+    logger.info(f"⏱️  Query started at {time.strftime('%H:%M:%S')}: '{req.message[:50]}...'")
+
     if not rag_engine or not mcp_orchestrator:
         raise HTTPException(status_code=500, detail="Engines not initialized")
 
@@ -255,6 +260,16 @@ def chat(req: ChatRequest):
 
     try:
         result = mcp_process_query(req.message.strip(), preferences=req.preferences)
+
+        # Calculate elapsed time
+        elapsed_time = time.time() - start_time
+        logger.info(f"⏱️  Query completed in {elapsed_time:.2f} seconds")
+
+        # Log warning if query took too long
+        if elapsed_time > 8.0:
+            logger.warning(f"⚠️  Query exceeded 8 second target! Took {elapsed_time:.2f}s")
+        else:
+            logger.info(f"✅ Query completed within target time ({elapsed_time:.2f}s < 8s)")
         
         # Ensure recipes have proper structure and valid scores
         validated_recipes = []
@@ -290,6 +305,113 @@ def chat(req: ChatRequest):
     except Exception as e:
         logger.exception("❌ MCP pipeline failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+# --------------------------------------------------
+# User Preferences Endpoints
+# --------------------------------------------------
+class SavePreferencesRequest(BaseModel):
+    session_id: str
+    preferences: UserPreferences
+
+class PreferencesResponse(BaseModel):
+    success: bool
+    message: str
+    preferences: Optional[UserPreferences] = None
+
+@app.post("/api/preferences/save", response_model=PreferencesResponse)
+def save_preferences(req: SavePreferencesRequest):
+    """Save user preferences to database"""
+    try:
+        # Check if Supabase is available
+        use_supabase = os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY")
+
+        if not use_supabase:
+            return PreferencesResponse(
+                success=False,
+                message="Database not configured. Preferences will be stored locally only."
+            )
+
+        from supabase import create_client
+
+        supabase = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_KEY")
+        )
+
+        # Upsert preferences (insert or update)
+        data = {
+            "session_id": req.session_id,
+            "diets": req.preferences.diets,
+            "skill": req.preferences.skill,
+            "servings": req.preferences.servings,
+            "goal": req.preferences.goal
+        }
+
+        result = supabase.table("user_preferences").upsert(data).execute()
+
+        logger.info(f"💾 Saved preferences for session {req.session_id[:8]}...")
+
+        return PreferencesResponse(
+            success=True,
+            message="Preferences saved successfully",
+            preferences=req.preferences
+        )
+    except Exception as e:
+        logger.exception("❌ Failed to save preferences")
+        return PreferencesResponse(
+            success=False,
+            message=f"Failed to save preferences: {str(e)}"
+        )
+
+@app.get("/api/preferences/{session_id}", response_model=PreferencesResponse)
+def get_preferences(session_id: str):
+    """Retrieve user preferences from database"""
+    try:
+        # Check if Supabase is available
+        use_supabase = os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY")
+
+        if not use_supabase:
+            return PreferencesResponse(
+                success=False,
+                message="Database not configured"
+            )
+
+        from supabase import create_client
+
+        supabase = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_KEY")
+        )
+
+        result = supabase.table("user_preferences").select("*").eq("session_id", session_id).execute()
+
+        if result.data and len(result.data) > 0:
+            prefs_data = result.data[0]
+            preferences = UserPreferences(
+                diets=prefs_data["diets"],
+                skill=prefs_data["skill"],
+                servings=prefs_data["servings"],
+                goal=prefs_data["goal"]
+            )
+
+            logger.info(f"📥 Retrieved preferences for session {session_id[:8]}...")
+
+            return PreferencesResponse(
+                success=True,
+                message="Preferences retrieved successfully",
+                preferences=preferences
+            )
+        else:
+            return PreferencesResponse(
+                success=False,
+                message="No preferences found for this session"
+            )
+    except Exception as e:
+        logger.exception("❌ Failed to retrieve preferences")
+        return PreferencesResponse(
+            success=False,
+            message=f"Failed to retrieve preferences: {str(e)}"
+        )
 
 # --------------------------------------------------
 # Serve Frontend Static Files (for production deployment)
