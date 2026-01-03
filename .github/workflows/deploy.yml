@@ -1,0 +1,174 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # ============================================================================
+  # JOB 1: Build and Push Docker Image
+  # ============================================================================
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        if: github.event_name != 'pull_request'
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/culinaraai
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # JOB 2: Run Database Migrations
+  # ============================================================================
+  run-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/download/v1.123.4/supabase_1.123.4_linux_amd64.tar.gz | tar -xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Run migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          supabase db push
+
+  # ============================================================================
+  # JOB 3: Deploy to Railway (or your platform)
+  # ============================================================================
+  deploy-railway:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: [build-and-push, run-migrations]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service culinaraai
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+
+  # ============================================================================
+  # JOB 4: Health Check After Deployment
+  # ============================================================================
+  health-check:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: deploy-railway
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Check API health
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://culinaraai.railway.app/)
+          if [ $response -eq 200 ]; then
+            echo "✅ Health check passed! API is responding."
+          else
+            echo "❌ Health check failed! Got HTTP $response"
+            exit 1
+          fi
+
+      - name: Run smoke tests
+        run: |
+          # Test chat endpoint
+          curl -X POST https://culinaraai.railway.app/api/chat \
+            -H "Content-Type: application/json" \
+            -d '{"message":"chicken recipe","preferences":{"diets":["Non-Vegetarian"],"skill":"Intermediate","servings":2,"goal":"Energy"}}' \
+            --fail || exit 1
+
+          echo "✅ Smoke tests passed!"
+
+  # ============================================================================
+  # JOB 5: Deployment Status Report
+  # ============================================================================
+  deployment-status:
+    name: Deployment Status Report
+    runs-on: ubuntu-latest
+    needs: [build-and-push, run-migrations, deploy-railway, health-check]
+    if: always()
+
+    steps:
+      - name: Report Deployment Status
+        run: |
+          echo "==================================================="
+          echo "Deployment Pipeline Summary"
+          echo "==================================================="
+          echo "Build & Push: ${{ needs.build-and-push.result }}"
+          echo "Migrations: ${{ needs.run-migrations.result }}"
+          echo "Deploy: ${{ needs.deploy-railway.result }}"
+          echo "Health Check: ${{ needs.health-check.result }}"
+          echo "==================================================="
+
+          if [[ "${{ needs.health-check.result }}" == "success" ]]; then
+            echo "✅ Deployment successful!"
+            echo "🚀 Application is live at: https://culinaraai.railway.app"
+          else
+            echo "❌ Deployment failed or health check did not pass"
+            exit 1
+          fi
+
+      - name: Notify team (optional)
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Deployment to production: ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true

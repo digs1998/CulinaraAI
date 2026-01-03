@@ -198,6 +198,29 @@ class WebRecipeScraper:
                     cook_time = parse_iso_duration(data.get("cookTime"))
                     total_time = parse_iso_duration(data.get("totalTime"))
 
+                    # Extract detailed nutrition information
+                    nutrition_data = data.get("nutrition", {}) if isinstance(data.get("nutrition"), dict) else {}
+                    nutrition_info = {}
+
+                    # Extract all available nutrition fields
+                    if nutrition_data:
+                        nutrition_fields = {
+                            "calories": "calories",
+                            "protein": "proteinContent",
+                            "carbohydrates": "carbohydrateContent",
+                            "fat": "fatContent",
+                            "saturated_fat": "saturatedFatContent",
+                            "fiber": "fiberContent",
+                            "sugar": "sugarContent",
+                            "sodium": "sodiumContent",
+                            "cholesterol": "cholesterolContent"
+                        }
+
+                        for key, schema_key in nutrition_fields.items():
+                            value = nutrition_data.get(schema_key)
+                            if value:
+                                nutrition_info[key] = value
+
                     return {
                         "title": title,
                         "ingredients": ingredients,
@@ -207,8 +230,7 @@ class WebRecipeScraper:
                             "cook_time": cook_time,
                             "total_time": total_time,
                             "servings": data.get("recipeYield"),
-                            "calories": data.get("nutrition", {}).get("calories")
-                            if isinstance(data.get("nutrition"), dict) else None
+                            "nutrition": nutrition_info if nutrition_info else None
                         },
                         "source": url
                     }
@@ -564,6 +586,47 @@ def extract_recipe_links_from_collection_page(url: str, max_links: int = 5) -> l
 # ----------------------------
 # Entry point for MCP fallback
 # ----------------------------
+async def scrape_recipes_parallel(urls: list) -> list:
+    """
+    Scrape multiple recipe URLs in parallel for faster performance.
+
+    Args:
+        urls: List of recipe URLs to scrape
+
+    Returns:
+        List of recipe dicts in the same order as input URLs
+    """
+    scraper = WebRecipeScraper()
+
+    # Create tasks for all URLs
+    tasks = []
+    for url in urls:
+        if not isinstance(url, str):
+            # Skip invalid URLs
+            continue
+        url = unwrap_duckduckgo(url)
+        tasks.append(scraper.scrape_recipe_from_url(url))
+
+    # Run all scraping tasks concurrently
+    recipes = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Filter out exceptions and return valid recipes
+    valid_recipes = []
+    for i, recipe in enumerate(recipes):
+        if isinstance(recipe, Exception):
+            print(f"    ✗ Error scraping URL {i+1}: {str(recipe)[:80]}")
+            valid_recipes.append({
+                "title": "Could not fetch recipe",
+                "ingredients": [],
+                "instructions": [],
+                "facts": {},
+                "source": urls[i] if i < len(urls) else "unknown"
+            })
+        else:
+            valid_recipes.append(recipe)
+
+    return valid_recipes
+
 def scrape_recipe_via_mcp(url: str) -> dict:
     """
     Synchronous wrapper to call async Crawl4AI scraper.
@@ -587,10 +650,10 @@ def scrape_recipe_via_mcp(url: str) -> dict:
                 }
         else:
             url = str(url)
-    
+
     url = unwrap_duckduckgo(url)
     scraper = WebRecipeScraper()
-    
+
     try:
         recipe = asyncio.run(scraper.scrape_recipe_from_url(url))
         return recipe
