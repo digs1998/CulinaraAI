@@ -28,6 +28,10 @@ jobs:
       - name: Scrape recipes from free APIs
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          EDAMAM_APP_ID: ${{ secrets.EDAMAM_APP_ID }}
+          EDAMAM_APP_KEY: ${{ secrets.EDAMAM_APP_KEY }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          SPOONACULAR_API_KEY: ${{ secrets.SPOONACULAR_API_KEY }}
         run: |
           python scripts/scrape_recipes.py
 
