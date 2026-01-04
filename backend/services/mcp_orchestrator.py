@@ -5,6 +5,7 @@ User Query → MCP Orchestrator → [RAG DB → Gemini LLM] + [Web Search → Ge
 
 from typing import Dict, List, Optional
 import asyncio
+import time
 import google.generativeai as genai
 from groq import Groq
 from services.recipe_scraper_pipeline import scrape_recipe_via_mcp, scrape_recipes_parallel
@@ -200,9 +201,10 @@ class MCPOrchestrator:
 
     def _process_rag_pipeline(self, query: str, top_k: int, similarity_threshold: float, preferences=None) -> Dict:
         """Query RAG DB → summarize with LLM"""
+        pipeline_start = time.time()
         print("📚 RAG DB Pipeline:")
         print("  → Searching local database...")
-        
+
         # Detect if user asked for a SPECIFIC protein/main ingredient FIRST
         # This is critical - if user says "lamb curry", they want LAMB, not prawn!
         import re
@@ -425,6 +427,9 @@ class MCPOrchestrator:
             print(f"  → Database has no individual recipes - will fall back to web search")
             rag_has_results = False
 
+        pipeline_time = time.time() - pipeline_start
+        print(f"  ⏱️  RAG pipeline took {pipeline_time:.2f}s")
+
         return {
             "has_results": rag_has_results,
             "results": filtered_results,
@@ -566,6 +571,7 @@ class MCPOrchestrator:
 
     def _process_web_pipeline(self, query: str, preferences=None) -> Dict:
         """Query web → scrape URLs via MCP → summarize with LLM"""
+        pipeline_start = time.time()
         print("\n🌐 Web Search Pipeline:")
         print("  → Searching internet...")
 
@@ -611,7 +617,10 @@ class MCPOrchestrator:
                 search_query = f"{query} recipe"
             print(f"  → Searching for: '{search_query}'")
 
+        search_start = time.time()
         web_search_result = self.mcp_tools.search_recipe_web(query=search_query, max_results=5)
+        search_time = time.time() - search_start
+        print(f"  ⏱️  DuckDuckGo search took {search_time:.2f}s")
 
         web_summary = None
         web_facts = []
@@ -628,9 +637,12 @@ class MCPOrchestrator:
             urls_to_scrape = [r.get("url") for r in results[:5] if r.get("url")]
 
             print(f"  → Scraping {len(urls_to_scrape)} recipes in parallel...")
+            scrape_start = time.time()
             try:
                 # Use asyncio.run to execute parallel scraping
                 scraped_recipes = asyncio.run(scrape_recipes_parallel(urls_to_scrape))
+                scrape_time = time.time() - scrape_start
+                print(f"  ⏱️  Parallel scraping took {scrape_time:.2f}s")
 
                 # Filter out failed recipes
                 valid_recipes = []
@@ -733,6 +745,7 @@ class MCPOrchestrator:
                     print(f"  → Current actual_recipes: {len(actual_recipes)}")
                     print(f"  → Extracting individual recipes from collection pages...")
 
+                    collection_start = time.time()
                     from services.recipe_scraper_pipeline import scrape_recipes_from_collection
                     
                     def is_collection_title(title: str) -> bool:
@@ -827,6 +840,9 @@ class MCPOrchestrator:
                         except Exception as e:
                             print(f"    ✗ Error extracting from collection: {str(e)[:60]}")
 
+                    collection_time = time.time() - collection_start
+                    print(f"  ⏱️  Collection extraction took {collection_time:.2f}s")
+
                 if not actual_recipes:
                     print(f"  ⚠️ All scraped pages were collections/listicles, no individual recipes found")
                     web_has_results = False
@@ -844,12 +860,18 @@ class MCPOrchestrator:
                     web_context = self._format_web_context(results, actual_recipes)
 
                     print("  → Generating culinary facts...")
+                    facts_start = time.time()
                     try:
                         web_facts = self._generate_facts(web_context, query)
+                        facts_time = time.time() - facts_start
+                        print(f"  ⏱️  Facts generation took {facts_time:.2f}s")
                         print(f"  ✓ Generated {len(web_facts)} facts")
                     except Exception as e:
                         print(f"  ⚠️ Failed to generate facts: {e}")
                         web_facts = []
+
+                    pipeline_time = time.time() - pipeline_start
+                    print(f"  ⏱️  Total web pipeline took {pipeline_time:.2f}s")
                     print("  ✓ Web search complete")
             else:
                 web_has_results = False
