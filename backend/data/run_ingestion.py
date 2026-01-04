@@ -27,10 +27,18 @@ async def scrape_recipes_pipeline():
             "www.allrecipes.com",
             "www.seriouseats.com",
             "www.bbcgoodfood.com",
-            "www.americastestkitchen.com",
             "www.blueapron.com",
+            "www.foodnetwork.com",
+            "www.tasteofhome.com",
+            "www.loveandlemons.com",
+            "www.simplyrecipes.com",
+            "www.delish.com",
+            "www.bonappetit.com",
+            "www.epicurious.com",
+            "www.cookieandkate.com",
+            "www.budgetbytes.com",
         ],
-        max_recipes=300,
+        max_recipes=1500,  # Increased from 300 to 1500 for daily scraping
         db_path="recipes.db",
     )
 
@@ -39,27 +47,59 @@ async def scrape_recipes_pipeline():
         # Food.com
         "https://www.food.com/ideas",
         "https://www.food.com/recipes",
-        
+
         # AllRecipes
         "https://www.allrecipes.com/recipes/",
         "https://www.allrecipes.com/recipes/17562/dinner/",
         "https://www.allrecipes.com/recipes/78/breakfast-and-brunch/",
-        
+
         # Serious Eats
         "https://www.seriouseats.com/recipes",
         "https://www.seriouseats.com/easy-recipes-5117887",
-        
+
         # BBC Good Food
         "https://www.bbcgoodfood.com/recipes/collection/quick-recipes",
         "https://www.bbcgoodfood.com/recipes/collection/easy-recipes",
         "https://www.bbcgoodfood.com/recipes",
-        
-        # America's Test Kitchen
-        "https://www.americastestkitchen.com/recipes/browse",
-        "https://www.americastestkitchen.com/recipes",
-        
+
         # Blue Apron
         "https://www.blueapron.com/cookbook/",
+
+        # Food Network
+        "https://www.foodnetwork.com/recipes",
+        "https://www.foodnetwork.com/recipes/photos/favorite-vegetarian-recipes",
+
+        # Taste of Home
+        "https://www.tasteofhome.com/recipes/",
+        "https://www.tasteofhome.com/collection/vegetarian-dinners/",
+
+        # Love and Lemons
+        "https://www.loveandlemons.com/recipes/",
+        "https://www.loveandlemons.com/vegetarian-recipes/",
+
+        # Simply Recipes
+        "https://www.simplyrecipes.com/recipes/",
+        "https://www.simplyrecipes.com/dinner_recipes/",
+
+        # Delish
+        "https://www.delish.com/cooking/recipe-ideas/",
+        "https://www.delish.com/cooking/g3273/easy-dinner-recipes/",
+
+        # Bon Appetit
+        "https://www.bonappetit.com/recipes",
+        "https://www.bonappetit.com/recipes/quick-easy",
+
+        # Epicurious
+        "https://www.epicurious.com/recipes-menus",
+        "https://www.epicurious.com/recipes/food/views/quick-easy",
+
+        # Cookie and Kate
+        "https://cookieandkate.com/recipes/",
+        "https://cookieandkate.com/category/recipes/vegetarian/",
+
+        # Budget Bytes
+        "https://www.budgetbytes.com/category/recipes/",
+        "https://www.budgetbytes.com/category/recipes/dinner/",
     ]
 
     print(f"🚀 Scraping recipes from {len(start_urls)} start URLs...")

@@ -58,8 +58,10 @@ class MCPRecipeTools:
                     snippet = snippet_elem.get_text(strip=True) if snippet_elem else ""
                     
                     # Filter for recipe sites
-                    recipe_sites = ['allrecipes', 'food.com', 'tasty', 'british', 'bbc', 
+                    recipe_sites = ['allrecipes', 'food.com', 'tasty', 'british', 'bbc',
                                   'seriouseats', 'bonappetit', 'foodnetwork', 'tasteofhome',
+                                  'loveandlemons', 'simplyrecipes', 'delish', 'epicurious',
+                                  'cookieandkate', 'budgetbytes', 'blueapron',
                                   'recipe', 'cooking', 'chef', 'cuisine']
                     
                     if any(site in url.lower() for site in recipe_sites) or 'recipe' in url.lower():
@@ -101,6 +103,21 @@ class MCPRecipeTools:
                 "title": f"{query} Recipe - Food.com",
                 "url": f"https://www.food.com/search/{quote_plus(query)}",
                 "snippet": f"Find {query} recipes on Food.com"
+            },
+            {
+                "title": f"{query} Recipe - Simply Recipes",
+                "url": f"https://www.simplyrecipes.com/?s={quote_plus(query)}",
+                "snippet": f"Find {query} recipes on Simply Recipes"
+            },
+            {
+                "title": f"{query} Recipe - Food Network",
+                "url": f"https://www.foodnetwork.com/search/{quote_plus(query)}",
+                "snippet": f"Find {query} recipes on Food Network"
+            },
+            {
+                "title": f"{query} Recipe - Taste of Home",
+                "url": f"https://www.tasteofhome.com/search/{quote_plus(query)}",
+                "snippet": f"Find {query} recipes on Taste of Home"
             }
         ]
         return recipe_sites[:max_results]

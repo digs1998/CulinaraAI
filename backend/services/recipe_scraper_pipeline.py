@@ -134,13 +134,13 @@ def extract_recipe_from_item_list_entry(item: dict, collection_url: str) -> dict
 class WebRecipeScraper:
     def __init__(self):
         self.browser_config = BrowserConfig(
-            browser_type="firefox", 
-            headless=True, 
+            browser_type="firefox",
+            headless=True,
             verbose=False
         )
         self.crawl_config = CrawlerRunConfig(
-            cache_mode="BYPASS", 
-            page_timeout=25000,
+            cache_mode="BYPASS",
+            page_timeout=15000,  # Reduced from 25s to 15s for faster scraping
             wait_for=None
         )
 
